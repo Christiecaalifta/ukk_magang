@@ -30,10 +30,13 @@ export async function POST(req: Request) {
 
   // set cookie
   res.cookies.set('token', token, {
-    httpOnly: true,
-    path: '/',
-    maxAge: 60 * 60 * 24,
-  });
+  httpOnly: true,
+  secure: false,       // localhost
+  sameSite: 'lax',
+  path: '/',
+  maxAge: 60 * 60 * 24,
+});
+
 
   return res;
 }

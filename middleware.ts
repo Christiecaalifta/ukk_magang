@@ -12,6 +12,9 @@ export function middleware(req: NextRequest) {
   try {
     const payload = verifyJwt(token);
     const role = payload.role;
+    console.log('Middleware cookies:', req.cookies.getAll());
+    console.log('Token:', req.cookies.get('token')?.value);
+
 
     if (!role) {
       return NextResponse.redirect(new URL('/login', req.url));
@@ -34,6 +37,7 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/login', req.url));
   }
 }
+
 
 export const config = {
   matcher: ['/admin/:path*', '/guru/:path*', '/siswa/:path*'],

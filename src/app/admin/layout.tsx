@@ -1,19 +1,22 @@
-// import Sidebar from './components/Sidebar'
-// import Topbar from './components/Topbar'
+import { supabase } from '@/lib/supabase/client'
+import AdminLayoutClient from '@/components/admin/layout_client'
 
-// export default function AdminLayout({
-//   children,
-// }: {
-//   children: React.ReactNode
-// }) {
-//   return (
-//     <div className="flex min-h-screen bg-slate-50">
-//       <Sidebar />
+export const dynamic = 'force-dynamic' // ✅ HARUS DI SINI
 
-//       <div className="flex-1">
-//         <Topbar />
-//         <main className="p-6">{children}</main>
-//       </div>
-//     </div>
-//   )
-// }
+export default async function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const { data: school } = await supabase
+    .from('school_settings')
+    .select('*')
+    .eq('id', 1)
+    .single()
+
+  return (
+    <AdminLayoutClient school={school}>
+      {children}
+    </AdminLayoutClient>
+  )
+}
