@@ -35,25 +35,26 @@ export async function getDudiStats() {
 export async function getDudiList({ search = '', limit = 5, page = 1 }: any) {
   const from = (page - 1) * limit
   const to = from + limit - 1
-
-  let query = supabase
-    .from('dudi')
-    .select(
-      `
-      id,
-      nama_perusahaan,
-      alamat,
-      email,
-      telepon,
-      penanggung_jawab,
-      status,
-      deleted_at,
-      magang(id)
+let query = supabase
+  .from('dudi')
+  .select(
+    `
+    id,
+    nama_perusahaan,
+    alamat,
+    email,
+    telepon,
+    penanggung_jawab,
+    status,
+    deleted_at,
+    magang(id, status)
     `,
-      { count: 'exact' }
-    )
-    .range(from, to)
-    .is('deleted_at', null) // tampilkan hanya yang belum dihapus
+    { count: 'exact' }
+  )
+  .eq('magang.status', 'berlangsung')
+  .is('deleted_at', null)
+  .range (from,to)
+
 
   if (search) {
     query = query.or(`

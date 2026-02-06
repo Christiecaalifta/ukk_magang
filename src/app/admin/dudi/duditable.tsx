@@ -17,6 +17,8 @@ import TambahDudiModal from '@/components/admin/adddudi'
 import EditDudiModal from '@/components/admin/editdudi'
 import { useRouter } from 'next/navigation'
 import Toast from '@/components/ui/toast'
+import { useSearchParams } from 'next/navigation'
+
 
 export default function DudiTableClient({ data, total }: any) {
   const [loading, setLoading] = useState(false)
@@ -26,6 +28,11 @@ export default function DudiTableClient({ data, total }: any) {
   const [openDelete, setOpenDelete] = useState(false)
   const [selectedDudi, setSelectedDudi] = useState<any>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const page = Number(searchParams.get('page') || 1)
+  const limit = 5 // samakan dengan backend
+  const totalPage = Math.ceil(total / limit)
+
 
   // ================= MODAL DELETE =================
   function openDeleteDialog(dudi: any) {
@@ -58,6 +65,13 @@ export default function DudiTableClient({ data, total }: any) {
     setToast('DUDI berhasil dihapus')
     router.refresh()
   }
+
+  function goToPage(p: number) {
+  const params = new URLSearchParams(window.location.search)
+  params.set('page', String(p))
+  window.location.href = `?${params.toString()}`
+}
+
 
   return (
     <div className="bg-white rounded-xl p-5 shadow-sm border">
@@ -164,7 +178,10 @@ export default function DudiTableClient({ data, total }: any) {
               {/* SISWA */}
               <td className="text-center">
                 <span className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs">
-                  {d.magang?.length || 0}
+                  {
+                    d.magang?.filter((m: any) => m.status === 'berlangsung').length || 0
+                  }
+
                 </span>
               </td>
 
@@ -253,9 +270,33 @@ export default function DudiTableClient({ data, total }: any) {
       )}
 
       {/* FOOTER */}
-      <p className="text-xs text-gray-400 mt-4">
-        Menampilkan {data.length} dari {total} data
-      </p>
+      <div className="flex justify-between items-center mt-4">
+  <p className="text-xs text-gray-400">
+    Menampilkan {data.length} dari {total} data
+  </p>
+
+  <div className="flex gap-2">
+    <button
+      disabled={page <= 1}
+      onClick={() => goToPage(page - 1)}
+      className="px-3 py-1 text-xs rounded-lg border disabled:opacity-50"
+    >
+      Sebelumnya
+    </button>
+
+    <span className="text-xs px-3 py-1 border rounded-lg bg-gray-50">
+      {page} / {totalPage}
+    </span>
+
+    <button
+      disabled={page >= totalPage}
+      onClick={() => goToPage(page + 1)}
+      className="px-3 py-1 text-xs rounded-lg border disabled:opacity-50"
+    >
+      Selanjutnya
+    </button>
+  </div>
+</div>
     </div>
   )
 }

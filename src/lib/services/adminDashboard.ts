@@ -78,6 +78,7 @@ const { count: totalLogbook } = await supabaseAdmin
         telepon
       )
     `)
+    .eq('status', 'berlangsung')
     console.log('DUDI RAW:', dudiAktifRaw)
 
 

@@ -3,8 +3,11 @@ import jwt, { JwtPayload } from 'jsonwebtoken'
 const JWT_SECRET = process.env.JWT_SECRET!
 
 export interface AppJwtPayload extends JwtPayload {
+  id: string
+  name: string
   email: string
   role: string
+
 }
 
 export function signJwt(payload: AppJwtPayload) {

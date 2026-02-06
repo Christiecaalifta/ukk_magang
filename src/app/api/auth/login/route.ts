@@ -34,7 +34,12 @@ export async function POST(req: Request) {
 
   // ✅ Jika sukses
   const role = user.role?.toLowerCase().trim();
-  const token = signJwt({ email: user.email, role });
+  const token = signJwt({
+  id: user.id,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+})
 
   const res = NextResponse.json({
     message: 'Login berhasil',
