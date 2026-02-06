@@ -10,17 +10,53 @@ import {
   User,
   Pencil,
   Trash2,
+  X
 } from 'lucide-react'
 import { useState } from 'react'
+import TambahDudiModal from '@/components/admin/adddudi'
+import EditDudiModal from '@/components/admin/editdudi'
+import { useRouter } from 'next/navigation'
+import Toast from '@/components/ui/toast'
 
 export default function DudiTableClient({ data, total }: any) {
   const [loading, setLoading] = useState(false)
+  const [open, setOpen] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [toast, setToast] = useState('')
+  const [openDelete, setOpenDelete] = useState(false)
+  const [selectedDudi, setSelectedDudi] = useState<any>(null)
+  const router = useRouter()
 
-  async function softDelete(id: string) {
-    if (!confirm('Yakin ingin menghapus DUDI ini?')) return
+  // ================= MODAL DELETE =================
+  function openDeleteDialog(dudi: any) {
+    setSelectedDudi(dudi)
+    setOpenDelete(true)
+  }
+
+  function closeDeleteDialog() {
+    setSelectedDudi(null)
+    setOpenDelete(false)
+  }
+
+  async function handleDelete() {
+    if (!selectedDudi) return
     setLoading(true)
-    await supabase.from('dudi').update({ deleted_at: new Date() }).eq('id', id)
-    location.reload()
+
+    const { error } = await supabase
+      .from('dudi')
+      .update({ deleted_at: new Date() })
+      .eq('id', selectedDudi.id)
+
+    setLoading(false)
+
+    if (error) {
+      alert(error.message)
+      return
+    }
+
+    closeDeleteDialog()
+    setToast('DUDI berhasil dihapus')
+    router.refresh()
   }
 
   return (
@@ -33,12 +69,12 @@ export default function DudiTableClient({ data, total }: any) {
           Daftar DUDI
         </h2>
 
-        <Link
-          href="/admin/dudi/tambah"
+        <button
+          onClick={() => setOpen(true)}
           className="px-4 py-2 bg-cyan-600 text-white rounded-lg text-sm hover:bg-cyan-700"
         >
           + Tambah DUDI
-        </Link>
+        </button>
       </div>
 
       {/* FILTER & SEARCH */}
@@ -52,7 +88,6 @@ export default function DudiTableClient({ data, total }: any) {
             window.location.href = `?q=${q}`
           }}
         />
-
         <select
           className="border rounded-lg px-3 py-2 text-sm w-full md:w-48"
           onChange={(e) => {
@@ -81,13 +116,11 @@ export default function DudiTableClient({ data, total }: any) {
         <tbody className="divide-y">
           {data.map((d: any) => (
             <tr key={d.id} className="hover:bg-gray-50">
-
               {/* PERUSAHAAN */}
               <td className="py-3 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center">
                   <Building2 size={18} />
                 </div>
-
                 <div>
                   <p className="font-semibold">{d.nama_perusahaan}</p>
                   <p className="text-xs text-gray-400 flex items-center gap-1">
@@ -117,17 +150,16 @@ export default function DudiTableClient({ data, total }: any) {
 
               {/* STATUS */}
               <td className="text-center">
-  <span
-    className={`px-3 py-1 rounded-full text-xs font-medium
-      ${d.status === 'aktif'
-        ? 'bg-green-100 text-green-700'
-        : 'bg-red-100 text-red-700'
-      }`}
-  >
-    {d.status === 'aktif' ? 'Aktif' : 'Tidak Aktif'}
-  </span>
-</td>
-
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium
+                    ${d.status === 'aktif'
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-red-100 text-red-700'
+                    }`}
+                >
+                  {d.status === 'aktif' ? 'Aktif' : 'Tidak Aktif'}
+                </span>
+              </td>
 
               {/* SISWA */}
               <td className="text-center">
@@ -138,26 +170,87 @@ export default function DudiTableClient({ data, total }: any) {
 
               {/* AKSI */}
               <td className="flex gap-3 justify-center">
-                <Link
-                  href={`/admin/dudi/${d.id}/edit`}
+                <button
+                  onClick={() => setEditId(d.id)}
                   className="text-gray-400 hover:text-cyan-600"
                 >
                   <Pencil size={16} />
-                </Link>
-
+                </button>
                 <button
-                  disabled={loading}
-                  onClick={() => softDelete(d.id)}
+                  onClick={() => openDeleteDialog(d)}
                   className="text-gray-400 hover:text-red-500"
                 >
                   <Trash2 size={16} />
                 </button>
               </td>
-
             </tr>
           ))}
         </tbody>
       </table>
+
+      {/* MODAL TAMBAH DUDI */}
+      {open && (
+        <TambahDudiModal
+          onClose={() => setOpen(false)}
+          onSuccess={() => {
+            setOpen(false)
+            setToast('DUDI berhasil ditambahkan')
+            router.refresh()
+          }}
+        />
+      )}
+
+      {/* MODAL EDIT DUDI */}
+      {editId && (
+        <EditDudiModal
+          dudiId={editId}
+          onClose={() => setEditId(null)}
+          onSuccess={() => {
+            setEditId(null)
+            setToast('Data DUDI berhasil diperbarui')
+            router.refresh()
+          }}
+        />
+      )}
+
+      {/* MODAL DELETE */}
+      {openDelete && selectedDudi && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl w-full max-w-md p-5">
+            <div className="flex justify-between mb-3">
+              <h3 className="font-semibold">Konfirmasi Hapus</h3>
+              <button onClick={closeDeleteDialog}>
+                <X />
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-5">
+              Apakah anda yakin ingin menghapus DUDI {selectedDudi.nama_perusahaan} ini? Tindakan ini tidak dapat dibatalkan.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button onClick={closeDeleteDialog} className="border px-4 py-2 rounded-lg">
+                Batal
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={loading}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg"
+              >
+                {loading ? 'Menghapus...' : 'Hapus'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TOAST */}
+      {toast && (
+        <Toast
+          message={toast}
+          onClose={() => setToast('')}
+        />
+      )}
 
       {/* FOOTER */}
       <p className="text-xs text-gray-400 mt-4">

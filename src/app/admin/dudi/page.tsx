@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { getDudiStats, getDudiList } from '@/lib/services/admindudi'
 import DudiTableClient from './duditable'
 import { Building2, Users, CheckCircle, XCircle, } from 'lucide-react'

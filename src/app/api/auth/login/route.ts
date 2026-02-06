@@ -6,37 +6,48 @@ import { signJwt } from '@/lib/jwt';
 export async function POST(req: Request) {
   const { email, password } = await req.json();
 
-  // ambil user dari Supabase
-  const { data: user, error } = await db
+  // Cari user berdasarkan email
+  const { data: user } = await db
     .from('users')
     .select('*')
     .eq('email', email)
     .single();
 
-  if (error || !user) {
-    return NextResponse.json({ message: 'Email atau password salah' }, { status: 401 });
+  // ❌ Jika email tidak ada
+  if (!user) {
+    return NextResponse.json(
+      { field: 'email', message: 'Email tidak terdaftar' },
+      { status: 401 }
+    );
   }
 
+  // Cek password
   const isValid = await bcrypt.compare(password, user.password);
+
+  // ❌ Jika password salah
   if (!isValid) {
-    return NextResponse.json({ message: 'Email atau password salah' }, { status: 401 });
+    return NextResponse.json(
+      { field: 'password', message: 'Password salah' },
+      { status: 401 }
+    );
   }
 
+  // ✅ Jika sukses
   const role = user.role?.toLowerCase().trim();
-  console.log('Login successful, role:', role);
   const token = signJwt({ email: user.email, role });
 
-  const res = NextResponse.json({ message: 'Login berhasil', role });
+  const res = NextResponse.json({
+    message: 'Login berhasil',
+    role,
+  });
 
-  // set cookie
   res.cookies.set('token', token, {
-  httpOnly: true,
-  secure: false,       // localhost
-  sameSite: 'lax',
-  path: '/',
-  maxAge: 60 * 60 * 24,
-});
-
+    httpOnly: true,
+    secure: false,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 24,
+  });
 
   return res;
 }

@@ -1,52 +1,58 @@
-import { supabase } from '@/lib/supabase/client'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export async function getDashboardData() {
   /* ================= STATS ================= */
 
-  const { count: totalSiswa } = await supabase
-    .from('siswa')
-    .select('*', { count: 'exact', head: true })
+// Total Siswa
+const { count: totalSiswa } = await supabaseAdmin
+  .from('siswa')
+  .select('*', { count: 'exact', head: true })
 
-  const { count: totalDudi } = await supabase
-    .from('dudi')
-    .select('*', { count: 'exact' })
+// Total DUDI
+const { count: totalDudi } = await supabaseAdmin
+  .from('dudi')
+  .select('*', { count: 'exact', head: true })
 
-  const { count: siswaMagang } = await supabase
-    .from('magang')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'berlangsung')
+// ✅ SISWA MAGANG AKTIF (STATUS = berlangsung)
+const { count: siswaMagangAktif, error: magangError } = await supabaseAdmin
+  .from('magang')
+  .select('*', { count: 'exact', head: true })
+  .eq('status', 'berlangsung')
 
-  const { count: totalLogbook } = await supabase
-    .from('logbook')
-    .select('*', { count: 'exact'})
+console.log('MAGANG AKTIF:', siswaMagangAktif, magangError)
+
+// Total Logbook
+const { count: totalLogbook } = await supabaseAdmin
+  .from('logbook')
+  .select('*', { count: 'exact', head: true })
+
 
   /* ================= LOGBOOK TERBARU ================= */
 
-  const { data: logbookTerbaru, error: logbookError } = await supabase
-  .from('logbook')
-  .select(`
-    id,
-    tanggal,
-    kegiatan,
-    kendala,
-    status_verifikasi,
-    magang:magang_id (
+  const { data: logbookTerbaru, error: logbookError } = await supabaseAdmin
+    .from('logbook')
+    .select(`
       id,
-      siswa:siswa_id (
-        nama
+      tanggal,
+      kegiatan,
+      kendala,
+      status_verifikasi,
+      magang:magang_id (
+        id,
+        siswa:siswa_id (
+          nama
+        )
       )
-    )
-  `)
-  .order('tanggal', { ascending: false })
-  .limit(5)
+    `)
+    .order('tanggal', { ascending: false })
+    .limit(5)
 
-console.log('LOGBOOK:', logbookTerbaru)
-console.log('LOGBOOK ERROR:', logbookError)
-
+  console.log('LOGBOOK:', logbookTerbaru)
+  console.log('LOGBOOK ERROR:', logbookError)
 
   /* ================= MAGANG TERBARU ================= */
 
-  const { data: magangTerbaru } = await supabase
+  const { data: magangTerbaru } = await supabaseAdmin
     .from('magang')
     .select(`
       id,
@@ -59,41 +65,39 @@ console.log('LOGBOOK ERROR:', logbookError)
     .order('tanggal_mulai', { ascending: false })
     .limit(5)
 
-  /* ================= DUDI AKTIF ================= */
-
   /* ================= DUDI AKTIF + JUMLAH SISWA ================= */
 
-const { data: dudiAktifRaw } = await supabase
-  .from('magang')
-  .select(`
-    dudi_id,
-    dudi:dudi_id (
-      id,
-      nama_perusahaan,
-      alamat,
-      telepon
-    )
-  `)
-  .eq('status', 'berlangsung')
+  const { data: dudiAktifRaw } = await supabaseAdmin
+    .from('magang')
+    .select(`
+      dudi_id,
+      dudi:dudi_id (
+        id,
+        nama_perusahaan,
+        alamat,
+        telepon
+      )
+    `)
+    console.log('DUDI RAW:', dudiAktifRaw)
 
-const dudiMap = new Map<string, any>()
 
-dudiAktifRaw?.forEach((item: any) => {
-  const dudi = item.dudi
-  if (!dudi?.id) return
+  const dudiMap = new Map<string, any>()
 
-  if (!dudiMap.has(dudi.id)) {
-    dudiMap.set(dudi.id, {
-      ...dudi,
-      jumlah_siswa: 1,
-    })
-  } else {
-    dudiMap.get(dudi.id).jumlah_siswa += 1
-  }
-})
+  dudiAktifRaw?.forEach((item: any) => {
+    const dudi = item.dudi
+    if (!dudi?.id) return
 
-const dudiAktif = Array.from(dudiMap.values())
+    if (!dudiMap.has(dudi.id)) {
+      dudiMap.set(dudi.id, {
+        ...dudi,
+        jumlah_siswa: 1,
+      })
+    } else {
+      dudiMap.get(dudi.id).jumlah_siswa += 1
+    }
+  })
 
+  const dudiAktif = Array.from(dudiMap.values())
 
   /* ================= RETURN ================= */
 
@@ -101,7 +105,7 @@ const dudiAktif = Array.from(dudiMap.values())
     stats: {
       totalSiswa: totalSiswa || 0,
       totalDudi: totalDudi || 0,
-      siswaMagang: siswaMagang || 0,
+      siswaMagang: siswaMagangAktif || 0,
       totalLogbook: totalLogbook || 0,
     },
     magangTerbaru: magangTerbaru || [],

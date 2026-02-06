@@ -21,8 +21,7 @@ export async function getDudiStats() {
   const { count: siswaMagang } = await supabase
     .from('magang')
     .select('*', { count: 'exact', head: true })
-    .eq('status', 'pending')
-    .is('deleted_at', null)
+    .eq('status', 'berlangsung')
 
   return {
     totalDudi: totalDudi || 0,
