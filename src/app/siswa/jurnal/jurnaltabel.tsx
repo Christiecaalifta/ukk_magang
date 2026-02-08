@@ -16,7 +16,8 @@ import {
   X
 } from 'lucide-react'
 import TambahJurnalForm from '@/components/siswa/addjurnal' // import komponen form
-import DetailJurnalModal from '@/components/siswa/detailjurnal' // Sesuaikan pathnya
+import DetailJurnalModal from '@/components/siswa/detailjurnal' 
+import EditJurnalForm from '@/components/siswa/editjurnal'
 
 /* ================= TOAST COMPONENT ================= */
 function Toast({
@@ -68,6 +69,7 @@ export default function LogbookClient({
   const [showForm, setShowForm] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [selectedJurnal, setSelectedJurnal] = useState<any | null>(null)
+  const [editingJurnalId, setEditingJurnalId] = useState<number | null>(null)
 
   const handleToast = (message: string) => setToastMessage(message)
 
@@ -219,15 +221,16 @@ export default function LogbookClient({
                           <Eye size={18} />
                         </button>
                         <button
-                          className={`p-2 rounded-lg transition-all ${
-                            item.status_verifikasi === 'pending'
-                              ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
-                              : 'text-slate-300 cursor-not-allowed'
-                          }`}
-                          disabled={item.status_verifikasi !== 'pending'}
-                        >
-                          <Pencil size={18} />
-                        </button>
+  onClick={() => setEditingJurnalId(item.id)} // Set ID jurnal yang akan diedit
+  className={`p-2 rounded-lg transition-all ${
+    item.status_verifikasi === 'pending' || item.status_verifikasi === 'ditolak'
+      ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
+      : 'text-slate-300 cursor-not-allowed'
+  }`}
+  disabled={item.status_verifikasi === 'disetujui'} // Kunci jika sudah disetujui
+>
+  <Pencil size={18} />
+</button>
                         <button
                           className={`p-2 rounded-lg transition-all ${
                             item.status_verifikasi === 'pending'
@@ -261,12 +264,26 @@ export default function LogbookClient({
       {/* ... bagian akhir kode LogbookClient ... */}
       
       {/* MODAL DETAIL */}
-      {selectedJurnal && (
-        <DetailJurnalModal 
-          data={selectedJurnal} 
-          onClose={() => setSelectedJurnal(null)} 
-        />
-      )}
+{selectedJurnal && (
+  <DetailJurnalModal 
+    data={selectedJurnal} 
+    onClose={() => setSelectedJurnal(null)} 
+  />
+)}
+
+{/* MODAL EDIT */}
+{editingJurnalId && (
+  <EditJurnalForm 
+    jurnalId={editingJurnalId}
+    onClose={() => setEditingJurnalId(null)}
+    onUpdate={() => {
+      setEditingJurnalId(null)
+      handleToast("Jurnal berhasil diperbarui!")
+      // Jika Anda menggunakan router.refresh() untuk refresh data:
+      // router.refresh() 
+    }}
+  />
+)}
 
       {/* TOAST */}
       {toastMessage && (
