@@ -1,5 +1,5 @@
 'use client'
-
+import { useState } from 'react'
 import { Search, Filter, Plus, Edit3, Trash2, Building2, User, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -11,10 +11,12 @@ interface Props {
   search: string
   status: string
 }
+import TambahMagangModal from '@/components/guru/addmagang'
 
 export default function MagangClient({ data, total, page, limit, search, status }: Props) {
   const router = useRouter()
   const totalPage = Math.ceil(total / limit)
+  const [isOpen, setIsOpen] = useState(false)
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -34,7 +36,9 @@ export default function MagangClient({ data, total, page, limit, search, status 
           Daftar Siswa Magang
         </div>
         
-        <button className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-lg shadow-cyan-100">
+        <button
+        onClick={() => setIsOpen(true)}
+        className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-lg shadow-cyan-100">
           <Plus size={18} /> Tambah
         </button>
       </div>
@@ -184,9 +188,16 @@ export default function MagangClient({ data, total, page, limit, search, status 
             <button className="p-1 hover:text-cyan-600 transition-colors"><ChevronRight size={16} /></button>
         </div>
       </div>
+      {/* Tambah Magang Modal */}
+<TambahMagangModal 
+  isOpen={isOpen} 
+  onClose={() => setIsOpen(false)} 
+/>
+
     </div>
   )
 }
+
 
 function StatusBadge({ status }: { status: string }) {
   const configs: any = {
