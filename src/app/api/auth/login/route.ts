@@ -7,11 +7,32 @@ export async function POST(req: Request) {
   const { email, password } = await req.json()
 
   // Cari user
-  const { data: user } = await db
-    .from('users')
-    .select('*')
-    .eq('email', email)
+// Cari user dulu
+const { data: user } = await db
+  .from('users')
+  .select('*')
+  .eq('email', email)
+  .single()
+
+// Jika user.role === 'guru', ambil id guru dari tabel guru
+let guruId: number | null = null
+if(user.role === 'guru') {
+  const { data: guru } = await db
+    .from('guru')
+    .select('id')
+    .eq('user_id', user.id)
     .single()
+  guruId = guru?.id || null
+}
+
+// Buat token
+const token = signJwt({
+  id: user.role === 'guru' ? guruId : user.id, // gunakan id guru untuk role guru
+  name: user.name,
+  email: user.email,
+  role: user.role,
+})
+
 
   if (!user) {
     return NextResponse.json(
@@ -31,12 +52,7 @@ export async function POST(req: Request) {
   }
 
   // ✅ Buat token
-  const token = signJwt({
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-  })
+  
 
   const res = NextResponse.json({
     message: 'Login berhasil',

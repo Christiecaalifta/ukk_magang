@@ -1,3 +1,6 @@
+// app/guru/dashboard/page.tsx
+import { cookies } from 'next/headers'
+import { verifyJwt } from '@/lib/jwt'
 import { getGuruDashboardData } from '@/lib/services/guru/guruDashboard'
 import {
   Users,
@@ -9,24 +12,30 @@ import {
   Phone,
 } from 'lucide-react'
 
-// ⚠️ nanti guruId ambil dari session/auth
-const guruId= '1'
+// ================= COMPONENT UTAMA =================
+export default async function GuruDashboardPage() {
+  // Ambil token dari cookies
+  const token = cookies().get('token')?.value
+  if (!token) return <div>Silakan login</div>
 
-export default async function GuruDashboard() {
+  // Verifikasi token
+  const payload = verifyJwt(token)
+  const guruId = Number(payload?.id) 
+  console.log('Guru ID:', guruId)
+  if (!guruId) return <div>Guru tidak ditemukan</div>
+
+  // Ambil data dashboard guru sesuai guruId
   const data = await getGuruDashboardData(guruId)
 
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
-
       {/* ================= HEADER ================= */}
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <GraduationCap className="text-cyan-500" />
           Dashboard Guru
         </h1>
-        <p className="text-sm text-gray-500">
-          Ringkasan siswa bimbingan
-        </p>
+        <p className="text-sm text-gray-500">Ringkasan siswa bimbingan</p>
       </div>
 
       {/* ================= STATS ================= */}
@@ -59,78 +68,13 @@ export default async function GuruDashboard() {
 
       {/* ================= CONTENT ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
         {/* LEFT */}
         <div className="lg:col-span-2 space-y-6">
+          {/* MAGANG TERBARU */}
+          <CardSection title="Magang Terbaru" icon={<GraduationCap className="text-cyan-500" />} items={data.magangTerbaru} type="magang" />
 
-          {/* ===== MAGANG TERBARU ===== */}
-          <div className="bg-white rounded-xl p-5 shadow-sm border">
-            <div className="flex items-center gap-2 mb-4">
-              <GraduationCap className="text-cyan-500" />
-              <h2 className="font-semibold">Magang Terbaru</h2>
-            </div>
-
-            <div className="space-y-3">
-              {data.magangTerbaru.map((m: any, i: number) => (
-                <div
-                  key={i}
-                  className="flex justify-between items-center p-3 bg-slate-50 rounded-xl"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white">
-                      <GraduationCap size={18} />
-                    </div>
-                    <div>
-                      <p className="font-semibold">{m.siswa?.nama}</p>
-                      <p className="text-xs text-gray-500">
-                        {m.dudi?.nama_perusahaan}
-                      </p>
-                      <div className="flex items-center gap-1 text-xs text-gray-400">
-                        <Calendar size={12} />
-                        <span>
-                          {m.tanggal_mulai} - {m.tanggal_selesai}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <StatusBadge status={m.status} />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* ===== LOGBOOK TERBARU ===== */}
-          <div className="bg-white rounded-xl p-5 shadow-sm border">
-            <div className="flex items-center gap-2 mb-4">
-              <BookOpen className="text-green-500" />
-              <h2 className="font-semibold">Logbook Terbaru</h2>
-            </div>
-
-            <div className="space-y-3">
-              {data.logbookTerbaru.map((l: any, i: number) => (
-                <div
-                  key={i}
-                  className="flex justify-between items-start p-3 bg-slate-50 rounded-xl"
-                >
-                  <div className="flex gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-green-500 flex items-center justify-center text-white">
-                      <BookOpen size={16} />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm">{l.kegiatan}</p>
-                      <p className="text-xs text-gray-400">{l.tanggal}</p>
-                      <p className="text-xs text-orange-500">
-                        Kendala: {l.kendala || '-'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <StatusBadge status={l.status_verifikasi} />
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* LOGBOOK TERBARU */}
+          <CardSection title="Logbook Terbaru" icon={<BookOpen className="text-green-500" />} items={data.logbookTerbaru} type="logbook" />
         </div>
 
         {/* RIGHT */}
@@ -142,10 +86,7 @@ export default async function GuruDashboard() {
 
           <div className="space-y-3">
             {data.dudiAktif.map((d: any, i: number) => (
-              <div
-                key={i}
-                className="flex justify-between items-center p-3 bg-slate-50 rounded-xl"
-              >
+              <div key={i} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl">
                 <div>
                   <p className="font-semibold">{d.nama_perusahaan}</p>
                   <div className="text-xs text-gray-500 flex items-center gap-1">
@@ -163,12 +104,12 @@ export default async function GuruDashboard() {
             ))}
           </div>
         </div>
-
       </div>
     </div>
   )
 }
 
+// ================= SUB-COMPONENT =================
 function StatCard({ title, value, desc, icon }: any) {
   return (
     <div className="bg-white rounded-xl p-5 shadow-sm border">
@@ -178,11 +119,7 @@ function StatCard({ title, value, desc, icon }: any) {
           <p className="text-2xl font-bold mt-1">{value}</p>
           <p className="text-xs text-gray-400 mt-1">{desc}</p>
         </div>
-
-        {/* ICON TANPA KOTAK */}
-        <div className="text-cyan-500">
-          {icon}
-        </div>
+        <div className="text-cyan-500">{icon}</div>
       </div>
     </div>
   )
@@ -196,10 +133,58 @@ function StatusBadge({ status }: any) {
     disetujui: 'bg-green-100 text-green-700',
     ditolak: 'bg-red-100 text-red-700',
   }
-
   return (
     <span className={`px-3 py-1 text-xs rounded-full ${map[status] || 'bg-gray-100 text-gray-600'}`}>
       {status}
     </span>
+  )
+}
+
+function CardSection({ title, icon, items, type }: any) {
+  return (
+    <div className="bg-white rounded-xl p-5 shadow-sm border">
+      <div className="flex items-center gap-2 mb-4">{icon}<h2 className="font-semibold">{title}</h2></div>
+
+      <div className="space-y-3">
+        {items.map((item: any, i: number) => {
+          if (type === 'magang') {
+            return (
+              <div key={i} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white">
+                    <GraduationCap size={18} />
+                  </div>
+                  <div>
+                    <p className="font-semibold">{item.siswa?.nama}</p>
+                    <p className="text-xs text-gray-500">{item.dudi?.nama_perusahaan}</p>
+                    <div className="flex items-center gap-1 text-xs text-gray-400">
+                      <Calendar size={12} />
+                      <span>{item.tanggal_mulai} - {item.tanggal_selesai}</span>
+                    </div>
+                  </div>
+                </div>
+                <StatusBadge status={item.status} />
+              </div>
+            )
+          } else if (type === 'logbook') {
+            return (
+              <div key={i} className="flex justify-between items-start p-3 bg-slate-50 rounded-xl">
+                <div className="flex gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-green-500 flex items-center justify-center text-white">
+                    <BookOpen size={16} />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">{item.kegiatan}</p>
+                    <p className="text-xs text-gray-400">{item.tanggal}</p>
+                    <p className="text-xs text-orange-500">Kendala: {item.kendala || '-'}</p>
+                  </div>
+                </div>
+                <StatusBadge status={item.status_verifikasi} />
+              </div>
+            )
+          }
+        })}
+      </div>
+    </div>
   )
 }
