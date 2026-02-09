@@ -11,7 +11,15 @@ export default async function DudiPage({ searchParams }: any) {
   const page = Number(searchParams.page || 1)
 
   const stats = await getDudiStats()
-  const { data, total } = await getDudiList({ search: q, limit, page })
+  const status = searchParams.status || ''
+
+const { data, total } = await getDudiList({
+  search: q,
+  status,
+  limit,
+  page
+})
+
 
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">

@@ -83,19 +83,23 @@ export default function EditUserModal({ user, onClose, onSuccess }: any) {
         </div>
 
           {/* ROLE */}
-          <div>
-            <label className="text-sm font-medium">
-              Role <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="w-full mt-1 px-3 py-2 border rounded-lg text-sm"
-            >
-              <option value="admin">Admin</option>
-              <option value="user">User</option>
-            </select>
-          </div>
+          {/* ROLE */}
+<div>
+  <label className="text-sm font-medium">
+    Role <span className="text-red-500">*</span>
+  </label>
+
+  <select
+    value={role}
+    onChange={(e) => setRole(e.target.value)}
+    className="w-full mt-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-cyan-500"
+  >
+    <option value="siswa">Siswa</option>
+    <option value="guru">Guru</option>
+    <option value="admin">Admin</option>
+  </select>
+</div>
+
 
           {/* CATATAN */}
           <div className="bg-blue-50 text-blue-600 text-xs p-3 rounded-lg">

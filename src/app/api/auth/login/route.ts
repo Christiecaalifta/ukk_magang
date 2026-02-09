@@ -6,34 +6,14 @@ import { signJwt } from '@/lib/jwt'
 export async function POST(req: Request) {
   const { email, password } = await req.json()
 
-  // Cari user
-// Cari user dulu
-const { data: user } = await db
-  .from('users')
-  .select('*')
-  .eq('email', email)
-  .single()
-
-// Jika user.role === 'guru', ambil id guru dari tabel guru
-let guruId: number | null = null
-if(user.role === 'guru') {
-  const { data: guru } = await db
-    .from('guru')
-    .select('id')
-    .eq('user_id', user.id)
+  // 1. Cari user
+  const { data: user } = await db
+    .from('users')
+    .select('*')
+    .eq('email', email)
     .single()
-  guruId = guru?.id || null
-}
 
-// Buat token
-const token = signJwt({
-  id: user.role === 'guru' ? guruId : user.id, // gunakan id guru untuk role guru
-  name: user.name,
-  email: user.email,
-  role: user.role,
-})
-
-
+  // 2. Kalau user tidak ada
   if (!user) {
     return NextResponse.json(
       { field: 'email', message: 'Email tidak terdaftar' },
@@ -41,7 +21,7 @@ const token = signJwt({
     )
   }
 
-  // Cek password
+  // 3. Cek password
   const isValid = await bcrypt.compare(password, user.password)
 
   if (!isValid) {
@@ -51,16 +31,35 @@ const token = signJwt({
     )
   }
 
-  // ✅ Buat token
-  
+  // 4. Kalau role guru → ambil id guru
+  let guruId: number | null = null
 
+  if (user.role === 'guru') {
+    const { data: guru } = await db
+      .from('guru')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+
+    guruId = guru?.id || null
+  }
+
+  // 5. Buat token
+  const token = signJwt({
+    id: user.role === 'guru' ? guruId : user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  })
+
+  // 6. Response
   const res = NextResponse.json({
     message: 'Login berhasil',
     role: user.role,
-    name: user.name, // kirim juga ke frontend
+    name: user.name,
   })
 
-  // Simpan di cookie
+  // 7. Simpan cookie
   res.cookies.set('token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -68,8 +67,6 @@ const token = signJwt({
     path: '/',
     maxAge: 60 * 60 * 24,
   })
-
-  
 
   return res
 }

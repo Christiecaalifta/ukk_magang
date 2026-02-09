@@ -60,9 +60,11 @@ export default function AddUserModal({ onClose }: { onClose: () => void }) {
     setLoading(false)
 
     if (!res.ok) {
-      alert('Gagal menambahkan user')
-      return
-    }
+  const err = await res.json()
+  alert(err.message)
+  return
+}
+
 
     onClose()
     router.refresh()

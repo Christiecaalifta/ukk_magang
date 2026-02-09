@@ -2,7 +2,6 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export async function getDashboardData() {
   /* ================= STATS ================= */
-
 // Total Siswa
 const { count: totalSiswa } = await supabaseAdmin
   .from('siswa')
@@ -114,3 +113,41 @@ const { count: totalLogbook } = await supabaseAdmin
     logbookTerbaru: logbookTerbaru || [],
   }
 }
+
+export async function getGuruStats() {
+  const { data, error } = await supabaseAdmin
+    .from('magang')
+    .select(`
+      siswa_id,
+      guru:guru_id (
+        id,
+        nama
+      )
+    `)
+
+  if (error) throw error
+
+  // Hitung manual DISTINCT
+  const map = new Map()
+
+  data.forEach((row: any) => {
+    const guruId = row.guru.id
+    const siswaId = row.siswa_id
+
+    if (!map.has(guruId)) {
+      map.set(guruId, {
+        nama: row.guru.nama,
+        siswaSet: new Set(),
+      })
+    }
+
+    map.get(guruId).siswaSet.add(siswaId)
+  })
+
+  // Convert ke array
+  return Array.from(map.values()).map((item: any) => ({
+    nama: item.nama,
+    jumlah: item.siswaSet.size,
+  }))
+}
+

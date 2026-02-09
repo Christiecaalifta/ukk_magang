@@ -2,6 +2,9 @@
 import { useState } from 'react'
 import { Search, Filter, Plus, Edit3, Trash2, Building2, User, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import TambahMagangModal from '@/components/guru/addmagang'
+import EditMagangModal from '@/components/guru/editmagang'
+
 
 interface Props {
   data: any[]
@@ -11,12 +14,14 @@ interface Props {
   search: string
   status: string
 }
-import TambahMagangModal from '@/components/guru/addmagang'
+
 
 export default function MagangClient({ data, total, page, limit, search, status }: Props) {
   const router = useRouter()
   const totalPage = Math.ceil(total / limit)
   const [isOpen, setIsOpen] = useState(false)
+  const [openEdit, setOpenEdit] = useState(false)
+const [selectedId, setSelectedId] = useState<number | null>(null)
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -153,9 +158,16 @@ export default function MagangClient({ data, total, page, limit, search, status 
                   {/* Aksi */}
                   <td className="px-6 py-4">
                     <div className="flex gap-2 justify-center">
-                        <button title="Edit Data" className="p-2 text-gray-400 hover:text-cyan-600 hover:bg-cyan-50 rounded-lg transition-all">
-                            <Edit3 size={16} />
-                        </button>
+                       <button
+  onClick={() => {
+    setSelectedId(item.id)
+    setOpenEdit(true)
+  }}
+  title="Edit Data"
+  className="p-2 text-gray-400 hover:text-cyan-500 hover:bg-cyan-50 rounded-lg transition-all"
+>
+  <Edit3 size={16} />
+</button>
                         <button title="Hapus Data" className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
                             <Trash2 size={16} />
                         </button>
@@ -192,6 +204,11 @@ export default function MagangClient({ data, total, page, limit, search, status 
 <TambahMagangModal 
   isOpen={isOpen} 
   onClose={() => setIsOpen(false)} 
+/>
+<EditMagangModal
+  isOpen={openEdit}
+  onClose={() => setOpenEdit(false)}
+  magangId={selectedId}
 />
 
     </div>

@@ -1,24 +1,24 @@
-import { supabase } from '@/lib/supabase/client'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 /* ================= STATS ================= */
 export async function getDudiStats() {
-  const { count: totalDudi } = await supabase
+  const { count: totalDudi } = await supabaseAdmin
     .from('dudi')
     .select('*', { count: 'exact' })
 
-  const { count: dudiAktif } = await supabase
+  const { count: dudiAktif } = await supabaseAdmin
     .from('dudi')
     .select('*', { count: 'exact' })
     .eq('status', 'aktif')
     .is('deleted_at', null)
 
-  const { count: dudiTidakAktif } = await supabase
+  const { count: dudiTidakAktif } = await supabaseAdmin
     .from('dudi')
     .select('*', { count: 'exact' })
     .eq('status', 'nonaktif')
     .is('deleted_at', null)
 
-  const { count: siswaMagang } = await supabase
+  const { count: siswaMagang } = await supabaseAdmin
     .from('magang')
     .select('*', { count: 'exact', head: true })
     .eq('status', 'berlangsung')
@@ -32,10 +32,10 @@ export async function getDudiStats() {
 }
 
 /* ================= LIST DUDI ================= */
-export async function getDudiList({ search = '', limit = 5, page = 1 }: any) {
+export async function getDudiList({ search = '', status = '', limit = 5, page = 1 }: any) {
   const from = (page - 1) * limit
   const to = from + limit - 1
-let query = supabase
+let query = supabaseAdmin
   .from('dudi')
   .select(
     `
@@ -51,9 +51,11 @@ let query = supabase
     `,
     { count: 'exact' }
   )
-  .eq('magang.status', 'berlangsung')
   .is('deleted_at', null)
   .range (from,to)
+if (status) {
+  query = query.eq('status', status)
+}
 
 
   if (search) {

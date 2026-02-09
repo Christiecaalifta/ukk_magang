@@ -10,7 +10,7 @@ const supabase = createClient(
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { name, email, password, role } = body
+    const { name, email, password, role, verified } = body
 
     if (!name || !email || !password) {
       return NextResponse.json({ message: 'Data tidak lengkap' }, { status: 400 })
@@ -23,14 +23,19 @@ export async function POST(req: Request) {
       email,
       password: hashed,
       role,
+      email_verified_at: verified
+        ? new Date().toISOString()
+        : null,
     })
 
     if (error) {
+      console.log(error) // 🔥 penting
       return NextResponse.json({ message: error.message }, { status: 400 })
     }
 
     return NextResponse.json({ message: 'User berhasil dibuat' })
-  } catch {
+  } catch (err) {
+    console.log(err)
     return NextResponse.json({ message: 'Server error' }, { status: 500 })
   }
 }
