@@ -177,26 +177,38 @@ export async function getMagangListForGuru(
 export async function getMagangStatsForGuru(guruId: number) {
   const supabase = createSupabaseServerClient()
 
-  const { data, error } = await supabase
+  // Ambil semua magang guru beserta siswa_id dan status
+  const { data: magangData, error } = await supabase
     .from('magang')
-    .select('status')
+    .select(`
+      siswa_id,
+      siswa:siswa_id(nama),
+      status
+    `)
     .eq('guru_id', guruId)
 
-  if (error) {
+  if (error || !magangData) {
     console.error('[MAGANG][STATS ERROR]', error)
-
     return {
       total: 0,
+      totalSiswaUnik: 0,
       aktif: 0,
       selesai: 0,
       pending: 0,
     }
   }
 
+  // Ambil siswa unik berdasarkan siswa_id
+  const siswaUnik = new Set<number>()
+  magangData.forEach(m => {
+    if (m.siswa_id) siswaUnik.add(m.siswa_id)
+  })
+
   return {
-    total: data.length,
-    aktif: data.filter(d => d.status === 'berlangsung').length,
-    selesai: data.filter(d => d.status === 'selesai').length,
-    pending: data.filter(d => d.status === 'pending').length,
+    total: magangData.length,        // total baris magang
+    totalSiswaUnik: siswaUnik.size,  // jumlah siswa unik
+    aktif: magangData.filter(d => d.status === 'berlangsung').length,
+    selesai: magangData.filter(d => d.status === 'selesai').length,
+    pending: magangData.filter(d => d.status === 'pending').length,
   }
 }

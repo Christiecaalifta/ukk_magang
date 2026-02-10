@@ -32,11 +32,12 @@ export default function AdminLayoutClient({
 }) {
   const pathname = usePathname()
 
- const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   const [openMenu, setOpenMenu] = useState(false)
   const [openLogout, setOpenLogout] = useState(false)
+  const [schoolData, setSchoolData] = useState(school)
 
 
   /* ================= GET USER ================= */
@@ -135,17 +136,20 @@ export default function AdminLayoutClient({
           </nav>
         </div>
 
-        {/* ================= FOOTER ================= */}
-        <div className="px-6 py-4 border-t">
+       {/* ================= FOOTER ================= */}
+        <div className="px-6 py-4">
 
-          <div className="p-3 rounded-xl bg-gradient-to-r from-green-400 to-emerald-500 text-white text-xs">
-            <p className="font-semibold">
-              {school?.nama_sekolah}
+          <div className="p-3 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-100/50">
+            <p className="font-bold text-xs leading-tight mb-1 truncate">
+              {school?.nama_sekolah || "Nama Sekolah"}
             </p>
 
-            <p className="opacity-90">
-              Sistem Pelaporan v1.0
-            </p>
+            <div className="flex items-center gap-1.5 opacity-80">
+              <div className="w-1 h-1 rounded-full bg-cyan-200" />
+              <p className="text-[9px] font-medium tracking-wide">
+                v1.0 System
+              </p>
+            </div>
           </div>
 
         </div>
@@ -160,9 +164,13 @@ export default function AdminLayoutClient({
 
           {/* LEFT */}
           <div>
-            <h2 className="font-semibold text-gray-800">
-              {school?.nama_sekolah}
-            </h2>
+            <h2 className="flex items-center gap-2 font-semibold text-gray-800">
+  {school?.logo_url && (
+    <img src={school.logo_url} className="w-8 h-8 object-contain rounded" />
+  )}
+  {school?.nama_sekolah}
+</h2>
+
 
             <p className="text-xs text-gray-500">
               Sistem Manajemen Magang Siswa
@@ -191,10 +199,13 @@ export default function AdminLayoutClient({
 
     </div>
 
-    {/* AVATAR */}
-    <div className="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold uppercase">
-      {user?.name?.charAt(0) || 'A'}
-    </div>
+    {/* AVATAR / LOGO */}
+<div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 
+                flex items-center justify-center text-white font-bold">
+  {user?.name?.charAt(0).toUpperCase() || 'A'}
+</div>
+
+
 
   </button>
 

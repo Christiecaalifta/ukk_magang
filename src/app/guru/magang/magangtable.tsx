@@ -21,7 +21,16 @@ export default function MagangClient({ data, total, page, limit, search, status 
   const totalPage = Math.ceil(total / limit)
   const [isOpen, setIsOpen] = useState(false)
   const [openEdit, setOpenEdit] = useState(false)
-const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const STATUS_LIST = [
+  'pending',
+  'diterima',
+  'ditolak',
+  'berlangsung',
+  'selesai',
+  'dibatalkan'
+]
+
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -63,15 +72,16 @@ const [selectedId, setSelectedId] = useState<number | null>(null)
         <div className="flex items-center gap-2">
             <Filter size={16} className="text-gray-400" />
             <select
-                name="status"
-                defaultValue={status}
-                className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500/20"
+              name="status"
+              defaultValue={status}
+              className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500/20"
             >
-                <option value="">Semua Status</option>
-                <option value="aktif">Aktif</option>
-                <option value="selesai">Selesai</option>
-                <option value="pending">Pending</option>
+              <option value="">Semua Status</option>
+              {STATUS_LIST.map((s) => (
+                <option key={s} value={s}>{capitalize(s)}</option>
+              ))}
             </select>
+
         </div>
 
         <button type="submit" className="text-sm font-bold text-cyan-600 hover:text-cyan-700 px-4">
@@ -133,13 +143,24 @@ const [selectedId, setSelectedId] = useState<number | null>(null)
                         </div>
                     </div>
                   </td>
+                {/* Periode */}
+                <td className="px-6 py-4 text-[11px] text-gray-500 leading-relaxed">
+                  {item.tanggal_mulai && item.tanggal_selesai ? (
+                    <>
+                      <div className="flex items-center gap-1">
+                        <Calendar size={12} /> {formatTanggal(item.tanggal_mulai)}
+                      </div>
+                      <div className="text-gray-300 ml-4">s.d {formatTanggal(item.tanggal_selesai)}</div>
+                      <div className="font-bold text-cyan-600 ml-4 italic">
+                        {calculateDays(item.tanggal_mulai, item.tanggal_selesai)} hari
+                      </div>
+                    </>
+                  ) : (
+                    <span className="text-gray-300 italic">-</span>
+                  )}
+                </td>
 
-                  {/* Periode */}
-                  <td className="px-6 py-4 text-[11px] text-gray-500 leading-relaxed">
-                    <div className="flex items-center gap-1"><Calendar size={12} /> {item.tanggal_mulai}</div>
-                    <div className="text-gray-300 ml-4">s.d {item.tanggal_selesai}</div>
-                    <div className="font-bold text-cyan-600 ml-4 italic">90 hari</div>
-                  </td>
+
 
                   {/* Status */}
                   <td className="px-6 py-4">
@@ -215,17 +236,43 @@ const [selectedId, setSelectedId] = useState<number | null>(null)
   )
 }
 
+function calculateDays(start: string, end: string) {
+  const startDate = new Date(start)
+  const endDate = new Date(end)
+  const diffTime = endDate.getTime() - startDate.getTime()
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  return diffDays
+}
+
+function formatTanggal(dateStr: string) {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
 
 function StatusBadge({ status }: { status: string }) {
   const configs: any = {
-    aktif: 'bg-emerald-50 text-emerald-600 border-emerald-100',
     pending: 'bg-amber-50 text-amber-600 border-amber-100',
-    selesai: 'bg-cyan-50 text-cyan-600 border-cyan-100',
+    diterima: 'bg-green-50 text-green-600 border-green-100',
+    ditolak: 'bg-red-50 text-red-600 border-red-100',
+    berlangsung: 'bg-cyan-50 text-cyan-600 border-cyan-100',
+    selesai: 'bg-blue-50 text-blue-600 border-blue-100',
+    dibatalkan: 'bg-gray-50 text-gray-600 border-gray-100',
   }
 
   return (
     <span className={`px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${configs[status] || 'bg-gray-100'}`}>
-      {status}
+      {capitalize(status)}
     </span>
   )
+}
+
+
+function capitalize(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1)
 }

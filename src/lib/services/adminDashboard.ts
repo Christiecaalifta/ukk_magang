@@ -115,6 +115,7 @@ const { count: totalLogbook } = await supabaseAdmin
 }
 
 export async function getGuruStats() {
+  // Ambil hanya magang dengan status 'berlangsung' atau 'diterima'
   const { data, error } = await supabaseAdmin
     .from('magang')
     .select(`
@@ -124,10 +125,11 @@ export async function getGuruStats() {
         nama
       )
     `)
+    .in('status', ['berlangsung', 'diterima']) // FILTER
 
   if (error) throw error
 
-  // Hitung manual DISTINCT
+  // Hitung jumlah siswa per guru (DISTINCT siswa)
   const map = new Map()
 
   data.forEach((row: any) => {
@@ -144,10 +146,9 @@ export async function getGuruStats() {
     map.get(guruId).siswaSet.add(siswaId)
   })
 
-  // Convert ke array
+  // Convert ke array untuk chart
   return Array.from(map.values()).map((item: any) => ({
     nama: item.nama,
     jumlah: item.siswaSet.size,
   }))
 }
-

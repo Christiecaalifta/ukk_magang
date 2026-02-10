@@ -24,6 +24,7 @@ export default function SchoolSettingClient({ initialData }: any) {
   const [edit, setEdit] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const [openDeleteLogo, setOpenDeleteLogo] = useState(false)
 
   const [form, setForm] = useState({
     logo_url: initialData.logo_url,
@@ -35,6 +36,45 @@ export default function SchoolSettingClient({ initialData }: any) {
     kepala_sekolah: initialData.kepala_sekolah,
     npsn: initialData.npsn,
   })
+ async function handleDeleteLogo() {
+  if (!form.logo_url) return
+
+  setLoading(true)
+
+  try {
+    const fileName = form.logo_url.split('/').pop()
+
+    if (fileName) {
+      await supabase.storage
+        .from('school-assets')
+        .remove([fileName])
+    }
+
+    // 🔥 PENTING: update database
+    const { error } = await supabase
+      .from('school_settings')
+      .update({ logo_url: null })
+      .eq('id', initialData.id)
+
+    if (error) throw error
+
+    setForm({
+      ...form,
+      logo_url: null,
+    })
+
+    setOpenDeleteLogo(false)
+
+    router.refresh() // optional tapi recommended
+  } catch (err) {
+    alert('Gagal menghapus logo')
+    console.error(err)
+  } finally {
+    setLoading(false)
+  }
+}
+
+
 
   async function handleUploadLogo(e: any) {
   const file = e.target.files[0]
@@ -142,9 +182,10 @@ export default function SchoolSettingClient({ initialData }: any) {
                     ) : (
                       <School className="text-slate-300" size={32} />
                     )}
+                    
                   </div>
                   {edit && (
-  <>
+  <div className="flex gap-3">
     <input
       type="file"
       accept="image/*"
@@ -157,10 +198,22 @@ export default function SchoolSettingClient({ initialData }: any) {
       htmlFor="logoUpload"
       className="cursor-pointer text-xs font-bold text-cyan-600 bg-cyan-50 px-4 py-2 rounded-lg hover:bg-cyan-100"
     >
-      Ganti Logo
+      {form.logo_url ? 'Ganti Logo' : 'Upload Logo'}
     </label>
-  </>
+
+    {form.logo_url && (
+      <button
+  type="button"
+  onClick={() => setOpenDeleteLogo(true)}
+  className="text-xs font-bold text-red-600 bg-red-50 px-4 py-2 rounded-lg hover:bg-red-100"
+>
+  Hapus Logo
+</button>
+
+    )}
+  </div>
 )}
+
 
                 </div>
               </div>
@@ -294,6 +347,40 @@ export default function SchoolSettingClient({ initialData }: any) {
           </div>
         </div>
       </div>
+      {openDeleteLogo && (
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
+    <div className="bg-white rounded-2xl w-full max-w-sm p-6 animate-in fade-in zoom-in-95">
+
+      <h3 className="text-lg font-bold text-slate-800 mb-2">
+        Hapus Logo Sekolah
+      </h3>
+
+      <p className="text-sm text-slate-600 mb-6">
+        Logo sekolah akan dihapus dan tidak ditampilkan di dashboard maupun dokumen.
+        Tindakan ini bisa dibatalkan sebelum disimpan.
+      </p>
+
+      <div className="flex justify-end gap-3">
+        <button
+          onClick={() => setOpenDeleteLogo(false)}
+          className="px-4 py-2 text-sm font-bold border rounded-lg hover:bg-slate-100"
+        >
+          Batal
+        </button>
+
+        <button
+          onClick={handleDeleteLogo}
+          disabled={loading}
+          className="px-4 py-2 text-sm font-bold bg-red-600 text-white rounded-lg hover:bg-red-700"
+        >
+          {loading ? 'Menghapus...' : 'Ya, Hapus'}
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
+
     </div>
   )
 }

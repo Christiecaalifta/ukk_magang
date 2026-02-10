@@ -1,41 +1,74 @@
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // 🔥 WAJIB
+  process.env.SUPABASE_SERVICE_ROLE_KEY! // WAJIB service role
 )
 
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { name, email, password, role, verified } = body
-
-    if (!name || !email || !password) {
-      return NextResponse.json({ message: 'Data tidak lengkap' }, { status: 400 })
-    }
-
-    const hashed = await bcrypt.hash(password, 10)
-
-    const { error } = await supabase.from('users').insert({
+    const {
       name,
       email,
-      password: hashed,
       role,
-      email_verified_at: verified
-        ? new Date().toISOString()
-        : null,
-    })
+      password,
+      email_verified_at,
+      kelas,
+      jurusan,
+      nis,
+      nip,
+      alamat,
+      telepon,
+    } = body
 
-    if (error) {
-      console.log(error) // 🔥 penting
-      return NextResponse.json({ message: error.message }, { status: 400 })
+    // 1️⃣ Hash password
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    // 2️⃣ Insert ke tabel users
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .insert({
+        name,
+        email,
+        role,
+        password: hashedPassword,
+        email_verified_at,
+      })
+      .select()
+      .single()
+
+    if (userError) throw userError
+
+    // 3️⃣ Berdasarkan role → insert tabel lanjutan
+    if (role === 'siswa') {
+      const { error } = await supabase.from('siswa').insert({
+        user_id: user.id,
+        kelas,
+        jurusan,
+        nis,
+      })
+      if (error) throw error
     }
 
-    return NextResponse.json({ message: 'User berhasil dibuat' })
-  } catch (err) {
-    console.log(err)
-    return NextResponse.json({ message: 'Server error' }, { status: 500 })
+    if (role === 'guru') {
+      const { error } = await supabase.from('guru').insert({
+        user_id: user.id,
+        nip,
+        alamat,
+        telepon,
+      })
+      if (error) throw error
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    console.error(err)
+    return NextResponse.json(
+      { message: err.message || 'Gagal menambah user' },
+      { status: 400 }
+    )
   }
 }

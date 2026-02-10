@@ -30,6 +30,17 @@ export async function POST(req: Request) {
       { status: 401 }
     )
   }
+  let siswaId: number | null = null
+
+if (user.role === 'siswa') {
+  const { data: siswa } = await db
+    .from('siswa')
+    .select('id')
+    .eq('user_id', user.id)
+    .single()
+
+  siswaId = siswa?.id || null
+}
 
   // 4. Kalau role guru → ambil id guru
   let guruId: number | null = null
@@ -46,7 +57,7 @@ export async function POST(req: Request) {
 
   // 5. Buat token
   const token = signJwt({
-    id: user.role === 'guru' ? guruId : user.id,
+    id: user.role === 'siswa' ? siswaId : (user.role === 'guru' ? guruId : user.id),
     name: user.name,
     email: user.email,
     role: user.role,

@@ -209,22 +209,22 @@ export default function SiswaLayout({
             </button>
 
             {/* DROPDOWN */}
-            {openMenu && (
-              <div className="absolute right-0 mt-2 w-40 bg-white border rounded-xl shadow-lg z-50">
+            {/* DROPDOWN */}
+{openMenu && (
+  <div className="absolute right-0 mt-2 w-40 bg-white border rounded-xl shadow-lg z-50">
+    <button
+      onClick={() => {
+        setOpenLogout(true)  // buka modal logout
+        setOpenMenu(false)   // tutup dropdown
+      }}
+      className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-500 hover:bg-red-50"
+    >
+      <LogOut size={16} />
+      Logout
+    </button>
+  </div>
+)}
 
-                <button
-                  onClick={() => {
-                    setOpenLogout(false)
-                    setOpenMenu(true)
-                  }}
-                  className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-500 hover:bg-red-50"
-                >
-                  <LogOut size={16} />
-                  Logout
-                </button>
-
-              </div>
-            )}
 
           </div>
 
