@@ -8,12 +8,14 @@ interface Props {
   isOpen: boolean
   onClose: () => void
   magangId: number | null
+  onSuccess: () => void // ✅ TAMBAH UNTUK TOAST
 }
 
 export default function EditMagangModal({
   isOpen,
   onClose,
   magangId,
+  onSuccess,
 }: Props) {
 
   /* ================= STATE ================= */
@@ -27,7 +29,6 @@ export default function EditMagangModal({
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
 
   const [siswaList, setSiswaList] = useState<any[]>([])
   const [guruList, setGuruList] = useState<any[]>([])
@@ -40,7 +41,7 @@ export default function EditMagangModal({
     'ditolak',
     'berlangsung',
     'selesai',
-    'dibatalkan'
+    'dibatalkan',
   ]
 
   /* ================= FETCH DATA ================= */
@@ -82,8 +83,8 @@ export default function EditMagangModal({
         setGuruId(String(magang.guru_id))
         setDudiId(String(magang.dudi_id))
 
-        setTanggalMulai(magang.tanggal_mulai)
-        setTanggalSelesai(magang.tanggal_selesai)
+        setTanggalMulai(magang.tanggal_mulai || '')
+        setTanggalSelesai(magang.tanggal_selesai || '')
         setStatus(magang.status)
 
       } catch (err) {
@@ -97,99 +98,118 @@ export default function EditMagangModal({
 
   /* ================= UPDATE ================= */
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
-  if (!magangId) return
+    e.preventDefault()
+    if (!magangId) return
 
-  setLoading(true)
-  setError('')
-  setSuccess('')
+    setLoading(true)
+    setError('')
 
-  // Validasi umum
-  if (!siswaId || !guruId || !dudiId || !status) {
-    setError('Siswa, Guru, DUDI, dan Status wajib diisi')
+    /* VALIDASI */
+    if (!siswaId || !guruId || !dudiId || !status) {
+      setError('Siswa, Guru, DUDI, dan Status wajib diisi')
+      setLoading(false)
+      return
+    }
+
+    if (
+      (status === 'berlangsung' || status === 'selesai') &&
+      (!tanggalMulai || !tanggalSelesai)
+    ) {
+      setError('Tanggal Mulai & Selesai wajib diisi')
+      setLoading(false)
+      return
+    }
+
+    /* UPDATE */
+    const { error: updateError } = await supabase
+      .from('magang')
+      .update({
+        siswa_id: Number(siswaId),
+        guru_id: Number(guruId),
+        dudi_id: Number(dudiId),
+        tanggal_mulai: tanggalMulai || null,
+        tanggal_selesai: tanggalSelesai || null,
+        status,
+      })
+      .eq('id', magangId)
+
     setLoading(false)
-    return
+
+    if (updateError) {
+      setError(updateError.message)
+      return
+    }
+
+    /* ================= SUCCESS ================= */
+
+    onSuccess() // 🔔 trigger toast
+    onClose()   // tutup modal
   }
-
-  // Validasi tanggal hanya untuk status aktif
-  if ((status === 'berlangsung' || status === 'selesai') && (!tanggalMulai || !tanggalSelesai)) {
-    setError('Tanggal Mulai & Selesai wajib diisi untuk status Berlangsung atau Selesai')
-    setLoading(false)
-    return
-  }
-
-  const { error: updateError } = await supabase
-    .from('magang')
-    .update({
-      siswa_id: Number(siswaId),
-      guru_id: Number(guruId),
-      dudi_id: Number(dudiId),
-      tanggal_mulai: tanggalMulai || null, // kosong → null
-      tanggal_selesai: tanggalSelesai || null,
-      status,
-    })
-    .eq('id', magangId)
-
-  setLoading(false)
-
-  if (updateError) {
-    setError(updateError.message)
-    return
-  }
-
-  setSuccess('Data berhasil diperbarui')
-
-  setTimeout(() => {
-    onClose()
-  }, 800)
-}
-
 
   if (!isOpen) return null
 
   /* ================= UI ================= */
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
+
       <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl">
 
         {/* HEADER */}
         <div className="flex justify-between p-6 border-b">
           <div>
             <h2 className="text-xl font-bold">Edit Data Magang</h2>
-            <p className="text-sm text-gray-400">Perbarui data magang siswa</p>
+            <p className="text-sm text-gray-400">
+              Perbarui data magang siswa
+            </p>
           </div>
-          <button onClick={onClose}><X /></button>
+
+          <button onClick={onClose}>
+            <X />
+          </button>
         </div>
 
         {/* FORM */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+        <form
+          onSubmit={handleSubmit}
+          className="p-6 space-y-6 max-h-[70vh] overflow-y-auto"
+        >
 
           {/* SISWA */}
           <div>
             <label className="text-xs font-semibold">Siswa</label>
+
             <select
               value={siswaId}
               onChange={(e) => setSiswaId(e.target.value)}
               className="w-full mt-1 px-4 py-2 border rounded-xl"
             >
               <option value="">Pilih Siswa</option>
+
               {siswaList.map((s) => (
-                <option key={s.id} value={s.id}>{s.nama}</option>
+                <option key={s.id} value={s.id}>
+                  {s.nama}
+                </option>
               ))}
             </select>
           </div>
 
           {/* GURU */}
           <div>
-            <label className="text-xs font-semibold">Guru Pembimbing</label>
+            <label className="text-xs font-semibold">
+              Guru Pembimbing
+            </label>
+
             <select
               value={guruId}
               onChange={(e) => setGuruId(e.target.value)}
               className="w-full mt-1 px-4 py-2 border rounded-xl"
             >
               <option value="">Pilih Guru</option>
+
               {guruList.map((g) => (
-                <option key={g.id} value={g.id}>{g.nama}</option>
+                <option key={g.id} value={g.id}>
+                  {g.nama}
+                </option>
               ))}
             </select>
           </div>
@@ -197,14 +217,18 @@ export default function EditMagangModal({
           {/* DUDI */}
           <div>
             <label className="text-xs font-semibold">DUDI</label>
+
             <select
               value={dudiId}
               onChange={(e) => setDudiId(e.target.value)}
               className="w-full mt-1 px-4 py-2 border rounded-xl"
             >
               <option value="">Pilih DUDI</option>
+
               {dudiList.map((d) => (
-                <option key={d.id} value={d.id}>{d.nama_perusahaan}</option>
+                <option key={d.id} value={d.id}>
+                  {d.nama_perusahaan}
+                </option>
               ))}
             </select>
           </div>
@@ -213,7 +237,10 @@ export default function EditMagangModal({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
             <div>
-              <label className="text-xs font-semibold">Tanggal Mulai</label>
+              <label className="text-xs font-semibold">
+                Tanggal Mulai
+              </label>
+
               <input
                 type="date"
                 value={tanggalMulai}
@@ -223,7 +250,10 @@ export default function EditMagangModal({
             </div>
 
             <div>
-              <label className="text-xs font-semibold">Tanggal Selesai</label>
+              <label className="text-xs font-semibold">
+                Tanggal Selesai
+              </label>
+
               <input
                 type="date"
                 value={tanggalSelesai}
@@ -234,29 +264,46 @@ export default function EditMagangModal({
 
             <div>
               <label className="text-xs font-semibold">Status</label>
+
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
                 className="w-full mt-1 px-4 py-2 border rounded-xl"
               >
                 {statusOptions.map((s) => (
-                  <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                  <option key={s} value={s}>
+                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                  </option>
                 ))}
               </select>
             </div>
 
           </div>
 
-          {/* MESSAGE */}
-          {error && <p className="text-red-500">{error}</p>}
-          {success && <p className="text-green-500">{success}</p>}
+          {/* ERROR */}
+          {error && (
+            <p className="text-red-500 text-sm">{error}</p>
+          )}
 
           {/* BUTTON */}
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <button type="button" onClick={onClose} className="px-6 py-2 border rounded-xl">Batal</button>
-            <button type="submit" disabled={loading} className="px-6 py-2 bg-blue-600 text-white rounded-xl">
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-2 border rounded-xl"
+            >
+              Batal
+            </button>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-2 bg-blue-600 text-white rounded-xl"
+            >
               {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
             </button>
+
           </div>
 
         </form>

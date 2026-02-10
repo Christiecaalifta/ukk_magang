@@ -1,9 +1,11 @@
 'use client'
+
 import { useState } from 'react'
 import { Search, Filter, Plus, Edit3, Trash2, Building2, User, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import TambahMagangModal from '@/components/guru/addmagang'
 import EditMagangModal from '@/components/guru/editmagang'
+import Toast from '@/components/ui/toast' // ✅ TAMBAH
 
 
 interface Props {
@@ -13,23 +15,40 @@ interface Props {
   limit: number
   search: string
   status: string
+  guruId: number        // ✅ TAMBAH
+  guruName?: string 
 }
 
 
-export default function MagangClient({ data, total, page, limit, search, status }: Props) {
+export default function MagangClient({
+  data,
+  total,
+  page,
+  limit,
+  search,
+  status,
+  guruId,
+  guruName,
+}: Props) {
+
   const router = useRouter()
   const totalPage = Math.ceil(total / limit)
+
   const [isOpen, setIsOpen] = useState(false)
   const [openEdit, setOpenEdit] = useState(false)
   const [selectedId, setSelectedId] = useState<number | null>(null)
+
+  // ✅ TOAST STATE
+  const [showToast, setShowToast] = useState(false)
+
   const STATUS_LIST = [
-  'pending',
-  'diterima',
-  'ditolak',
-  'berlangsung',
-  'selesai',
-  'dibatalkan'
-]
+    'pending',
+    'diterima',
+    'ditolak',
+    'berlangsung',
+    'selesai',
+    'dibatalkan'
+  ]
 
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
@@ -40,19 +59,26 @@ export default function MagangClient({ data, total, page, limit, search, status 
     router.push(`?search=${s}&status=${st}&page=1`)
   }
 
+  // ✅ HANDLER SUCCESS (DARI MODAL)
+  const handleSuccess = () => {
+    setShowToast(true)
+    router.refresh()
+  }
+
+
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      
+
       {/* Table Action Header */}
       <div className="p-6 border-b border-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-2 text-cyan-600 font-semibold text-sm">
           <User size={18} />
           Daftar Siswa Magang
         </div>
-        
+
         <button
-        onClick={() => setIsOpen(true)}
-        className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-lg shadow-cyan-100">
+          onClick={() => setIsOpen(true)}
+          className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-lg shadow-cyan-100">
           <Plus size={18} /> Tambah
         </button>
       </div>
@@ -70,26 +96,26 @@ export default function MagangClient({ data, total, page, limit, search, status 
         </div>
 
         <div className="flex items-center gap-2">
-            <Filter size={16} className="text-gray-400" />
-            <select
-              name="status"
-              defaultValue={status}
-              className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500/20"
-            >
-              <option value="">Semua Status</option>
-              {STATUS_LIST.map((s) => (
-                <option key={s} value={s}>{capitalize(s)}</option>
-              ))}
-            </select>
+          <Filter size={16} className="text-gray-400" />
+          <select
+            name="status"
+            defaultValue={status}
+            className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500/20"
+          >
+            <option value="">Semua Status</option>
+            {STATUS_LIST.map((s) => (
+              <option key={s} value={s}>{capitalize(s)}</option>
+            ))}
+          </select>
 
         </div>
 
         <button type="submit" className="text-sm font-bold text-cyan-600 hover:text-cyan-700 px-4">
           Terapkan Filter
         </button>
-        
+
         <div className="ml-auto text-sm text-gray-500">
-            Tampilkan: <span className="font-bold text-slate-800">10</span>
+          Tampilkan: <span className="font-bold text-slate-800">10</span>
         </div>
       </form>
 
@@ -107,12 +133,18 @@ export default function MagangClient({ data, total, page, limit, search, status 
               <th className="px-6 py-4 text-center">Aksi</th>
             </tr>
           </thead>
+
           <tbody className="divide-y divide-gray-50">
             {data.length === 0 ? (
-              <tr><td colSpan={7} className="text-center py-10 text-gray-400">Data tidak ditemukan</td></tr>
+              <tr>
+                <td colSpan={7} className="text-center py-10 text-gray-400">
+                  Data tidak ditemukan
+                </td>
+              </tr>
             ) : (
               data.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50/50 transition-colors group">
+
                   {/* Siswa */}
                   <td className="px-6 py-4">
                     <div className="font-bold text-slate-800 text-sm">{item.siswa?.nama}</div>
@@ -123,44 +155,43 @@ export default function MagangClient({ data, total, page, limit, search, status 
                   {/* Guru */}
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                        <User size={14} className="text-gray-300" />
-                        <div>
-                            <div className="text-sm font-medium text-slate-700">{item.guru?.nama}</div>
-                            <div className="text-[10px] text-gray-400">NIP: {item.guru?.nip || '-'}</div>
-                        </div>
+                      <User size={14} className="text-gray-300" />
+                      <div>
+                        <div className="text-sm font-medium text-slate-700">{item.guru?.nama}</div>
+                        <div className="text-[10px] text-gray-400">NIP: {item.guru?.nip || '-'}</div>
+                      </div>
                     </div>
                   </td>
 
                   {/* DUDI */}
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-gray-100 rounded-lg text-gray-400 group-hover:bg-cyan-50 group-hover:text-cyan-500 transition-colors">
-                            <Building2 size={16} />
-                        </div>
-                        <div>
-                            <div className="text-sm font-bold text-slate-700">{item.dudi?.nama_perusahaan}</div>
-                            <div className="text-[10px] text-gray-400 italic">Jakarta</div>
-                        </div>
+                      <div className="p-2 bg-gray-100 rounded-lg text-gray-400 group-hover:bg-cyan-50 group-hover:text-cyan-500 transition-colors">
+                        <Building2 size={16} />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-slate-700">{item.dudi?.nama_perusahaan}</div>
+                        <div className="text-[10px] text-gray-400 italic">Jakarta</div>
+                      </div>
                     </div>
                   </td>
-                {/* Periode */}
-                <td className="px-6 py-4 text-[11px] text-gray-500 leading-relaxed">
-                  {item.tanggal_mulai && item.tanggal_selesai ? (
-                    <>
-                      <div className="flex items-center gap-1">
-                        <Calendar size={12} /> {formatTanggal(item.tanggal_mulai)}
-                      </div>
-                      <div className="text-gray-300 ml-4">s.d {formatTanggal(item.tanggal_selesai)}</div>
-                      <div className="font-bold text-cyan-600 ml-4 italic">
-                        {calculateDays(item.tanggal_mulai, item.tanggal_selesai)} hari
-                      </div>
-                    </>
-                  ) : (
-                    <span className="text-gray-300 italic">-</span>
-                  )}
-                </td>
 
-
+                  {/* Periode */}
+                  <td className="px-6 py-4 text-[11px] text-gray-500 leading-relaxed">
+                    {item.tanggal_mulai && item.tanggal_selesai ? (
+                      <>
+                        <div className="flex items-center gap-1">
+                          <Calendar size={12} /> {formatTanggal(item.tanggal_mulai)}
+                        </div>
+                        <div className="text-gray-300 ml-4">s.d {formatTanggal(item.tanggal_selesai)}</div>
+                        <div className="font-bold text-cyan-600 ml-4 italic">
+                          {calculateDays(item.tanggal_mulai, item.tanggal_selesai)} hari
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-gray-300 italic">-</span>
+                    )}
+                  </td>
 
                   {/* Status */}
                   <td className="px-6 py-4">
@@ -170,28 +201,34 @@ export default function MagangClient({ data, total, page, limit, search, status 
                   {/* Nilai */}
                   <td className="px-6 py-4 text-center">
                     {item.nilai ? (
-                        <span className="bg-lime-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full">{item.nilai}</span>
+                      <span className="bg-lime-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full">{item.nilai}</span>
                     ) : (
-                        <span className="text-gray-300">-</span>
+                      <span className="text-gray-300">-</span>
                     )}
                   </td>
 
                   {/* Aksi */}
                   <td className="px-6 py-4">
                     <div className="flex gap-2 justify-center">
-                       <button
-  onClick={() => {
-    setSelectedId(item.id)
-    setOpenEdit(true)
-  }}
-  title="Edit Data"
-  className="p-2 text-gray-400 hover:text-cyan-500 hover:bg-cyan-50 rounded-lg transition-all"
->
-  <Edit3 size={16} />
-</button>
-                        <button title="Hapus Data" className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
-                            <Trash2 size={16} />
-                        </button>
+
+                      <button
+                        onClick={() => {
+                          setSelectedId(item.id)
+                          setOpenEdit(true)
+                        }}
+                        title="Edit Data"
+                        className="p-2 text-gray-400 hover:text-cyan-500 hover:bg-cyan-50 rounded-lg transition-all"
+                      >
+                        <Edit3 size={16} />
+                      </button>
+
+                      <button
+                        title="Hapus Data"
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+
                     </div>
                   </td>
                 </tr>
@@ -201,40 +238,68 @@ export default function MagangClient({ data, total, page, limit, search, status 
         </table>
       </div>
 
-      {/* Pagination (Sesuai Gambar) */}
+      {/* Pagination */}
       <div className="p-6 border-t border-gray-50 flex justify-between items-center text-[11px] text-gray-400 font-medium">
-        <p>Menampilkan {(page - 1) * limit + 1} sampai {Math.min(page * limit, total)} dari {total} entri</p>
-        
+        <p>
+          Menampilkan {(page - 1) * limit + 1} sampai {Math.min(page * limit, total)} dari {total} entri
+        </p>
+
         <div className="flex items-center gap-2">
-            <button className="p-1 hover:text-cyan-600 transition-colors"><ChevronLeft size={16} /></button>
-            {Array.from({ length: totalPage }).map((_, i) => (
-                <a
-                    key={i}
-                    href={`?page=${i + 1}&search=${search}&status=${status}`}
-                    className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${
-                        page === i + 1 ? 'bg-cyan-500 text-white font-bold shadow-md shadow-cyan-100' : 'hover:bg-gray-100'
-                    }`}
-                >
-                    {i + 1}
-                </a>
-            ))}
-            <button className="p-1 hover:text-cyan-600 transition-colors"><ChevronRight size={16} /></button>
+          <button className="p-1 hover:text-cyan-600 transition-colors">
+            <ChevronLeft size={16} />
+          </button>
+
+          {Array.from({ length: totalPage }).map((_, i) => (
+            <a
+              key={i}
+              href={`?page=${i + 1}&search=${search}&status=${status}`}
+              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${
+                page === i + 1
+                  ? 'bg-cyan-500 text-white font-bold shadow-md shadow-cyan-100'
+                  : 'hover:bg-gray-100'
+              }`}
+            >
+              {i + 1}
+            </a>
+          ))}
+
+          <button className="p-1 hover:text-cyan-600 transition-colors">
+            <ChevronRight size={16} />
+          </button>
         </div>
       </div>
+
       {/* Tambah Magang Modal */}
-<TambahMagangModal 
-  isOpen={isOpen} 
-  onClose={() => setIsOpen(false)} 
+      <TambahMagangModal
+  isOpen={isOpen}
+  onClose={() => setIsOpen(false)}
+  onSuccess={handleSuccess}
+  guruId={guruId}        // ✅ TAMBAH
+  guruName={guruName}    // ✅ TAMBAH
 />
-<EditMagangModal
-  isOpen={openEdit}
-  onClose={() => setOpenEdit(false)}
-  magangId={selectedId}
-/>
+
+
+      <EditMagangModal
+        isOpen={openEdit}
+        onClose={() => setOpenEdit(false)}
+        magangId={selectedId}
+        onSuccess={handleSuccess}   // ✅ TAMBAH
+      />
+
+      {/* ✅ TOAST */}
+      {showToast && (
+        <Toast
+          message="Data magang berhasil disimpan!"
+          onClose={() => setShowToast(false)}
+        />
+      )}
 
     </div>
   )
 }
+
+
+/* ================= HELPERS ================= */
 
 function calculateDays(start: string, end: string) {
   const startDate = new Date(start)
@@ -254,7 +319,6 @@ function formatTanggal(dateStr: string) {
   })
 }
 
-
 function StatusBadge({ status }: { status: string }) {
   const configs: any = {
     pending: 'bg-amber-50 text-amber-600 border-amber-100',
@@ -266,12 +330,15 @@ function StatusBadge({ status }: { status: string }) {
   }
 
   return (
-    <span className={`px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${configs[status] || 'bg-gray-100'}`}>
+    <span
+      className={`px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${
+        configs[status] || 'bg-gray-100'
+      }`}
+    >
       {capitalize(status)}
     </span>
   )
 }
-
 
 function capitalize(str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1)

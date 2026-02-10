@@ -45,16 +45,56 @@ export default async function MagangGuruPage({ searchParams }: any) {
 
   /* ================= DATA ================= */
 
-  // ✅ Ambil stats dari service
-  const stats = await getMagangStatsForGuru(guruId)
+  // ✅ DEFAULT STATS (ANTI ERROR)
+  let stats = {
+    totalSiswaUnik: 0,
+    aktif: 0,
+    selesai: 0,
+    pending: 0,
+  }
 
-  // ✅ Ambil list dari service
-  const result = await getMagangListForGuru(guruId, {
-    search,
-    status,
-    page,
-    limit,
-  })
+  // ✅ DEFAULT RESULT (ANTI ERROR)
+  let result = {
+    data: [] as any[],
+    total: 0,
+  }
+
+
+  /* ================= FETCH STATS ================= */
+
+  try {
+    const resStats = await getMagangStatsForGuru(guruId)
+
+    stats = {
+      totalSiswaUnik: resStats?.totalSiswaUnik || 0,
+      aktif: resStats?.aktif || 0,
+      selesai: resStats?.selesai || 0,
+      pending: resStats?.pending || 0,
+    }
+
+  } catch (err) {
+    console.error('Error getMagangStatsForGuru:', err)
+  }
+
+
+  /* ================= FETCH LIST ================= */
+
+  try {
+    const res = await getMagangListForGuru(guruId, {
+      search,
+      status,
+      page,
+      limit,
+    })
+
+    result = {
+      data: res?.data || [],
+      total: res?.total || 0,
+    }
+
+  } catch (err) {
+    console.error('Error getMagangListForGuru:', err)
+  }
 
 
   /* ================= UI ================= */
@@ -62,7 +102,8 @@ export default async function MagangGuruPage({ searchParams }: any) {
   return (
     <div className="p-8 space-y-8 bg-[#f8fafc] min-h-screen">
 
-      {/* Header */}
+      {/* ================= HEADER ================= */}
+
       <div>
         <h1 className="text-2xl font-bold text-slate-800">
           Manajemen Siswa Magang
@@ -74,12 +115,13 @@ export default async function MagangGuruPage({ searchParams }: any) {
       </div>
 
 
-      {/* Stat Cards */}
+      {/* ================= STAT CARDS ================= */}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
         <StatCard
           title="Total Siswa"
-          value={stats.total}
+          value={stats.totalSiswaUnik}
           subtitle="Siswa magang terdaftar"
           icon={<Users />}
         />
@@ -111,22 +153,26 @@ export default async function MagangGuruPage({ searchParams }: any) {
       </div>
 
 
-      {/* Table */}
+      {/* ================= TABLE ================= */}
+
       <MagangClient
-        data={result.data}
-        total={result.total}
-        page={page}
-        limit={limit}
-        search={search}
-        status={status}
-      />
+  data={result.data}
+  total={result.total}
+  page={page}
+  limit={limit}
+  search={search}
+  status={status}
+  guruId={guruId}          // ✅ TAMBAH
+  guruName={user.nama}    // ✅ TAMBAH (kalau ada)
+/>
+
 
     </div>
   )
 }
 
 
-/* ================= CARD ================= */
+/* ================= CARD COMPONENT ================= */
 
 function StatCard({
   title,

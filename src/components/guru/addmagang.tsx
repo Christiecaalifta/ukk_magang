@@ -7,58 +7,88 @@ import { supabase } from '@/lib/supabase/client'
 interface ModalProps {
   isOpen: boolean
   onClose: () => void
+  onSuccess: () => void
+  guruId: number
+  guruName?: string
 }
 
-export default function TambahMagangModal({ isOpen, onClose }: ModalProps) {
+export default function TambahMagangModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  guruId,
+  guruName,
+}: ModalProps) {
+  /* ================= STATE ================= */
+
   const [siswaId, setSiswaId] = useState('')
-  const [guruId, setGuruId] = useState('')
-  const [guruName, setGuruName] = useState('')
   const [dudiId, setDudiId] = useState('')
   const [tanggalMulai, setTanggalMulai] = useState('')
   const [tanggalSelesai, setTanggalSelesai] = useState('')
   const [status, setStatus] = useState('pending')
 
+  const [selectedGuruId, setSelectedGuruId] = useState('')
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
 
   const [siswaList, setSiswaList] = useState<any[]>([])
   const [dudiList, setDudiList] = useState<any[]>([])
-  const [guruList, setGuruList] = useState<any[]>([]) // ✅ list guru
+  const [guruList, setGuruList] = useState<any[]>([])
+
+  const statusOptions = [
+    'pending',
+    'diterima',
+    'ditolak',
+    'berlangsung',
+    'selesai',
+    'dibatalkan',
+  ]
+
+  /* ================= SET GURU LOGIN ================= */
+
+  useEffect(() => {
+    if (isOpen && guruId) {
+      setSelectedGuruId(String(guruId))
+    }
+  }, [isOpen, guruId])
 
   /* ================= FETCH DATA ================= */
 
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen || !guruId) return
 
     const fetchData = async () => {
       try {
-        // Ambil siswa
-        const { data: siswa } = await supabase
+        /* === SISWA BIMBINGAN === */
+        const { data: siswaData, error: siswaErr } = await supabase
           .from('siswa')
-          .select('id, nama')
+          .select('id, nama, nis')
+          .eq('guru_id', guruId)
 
-        // Ambil DUDI
-        const { data: dudi } = await supabase
+        if (siswaErr) throw siswaErr
+
+        /* === DUDI === */
+        const { data: dudiData } = await supabase
           .from('dudi')
           .select('id, nama_perusahaan')
 
-        // Ambil guru
-        const { data: guru } = await supabase
+        /* === GURU (OPSIONAL) === */
+        const { data: guruData } = await supabase
           .from('guru')
           .select('id, nama')
 
-        setSiswaList(siswa || [])
-        setDudiList(dudi || [])
-        setGuruList(guru || [])
-
+        setSiswaList(siswaData || [])
+        setDudiList(dudiData || [])
+        setGuruList(guruData || [])
       } catch (err) {
-        console.error('Fetch error:', err)
+        console.error(err)
+        setError('Gagal memuat data')
       }
     }
 
     fetchData()
-  }, [isOpen])
+  }, [isOpen, guruId])
 
   /* ================= SUBMIT ================= */
 
@@ -67,12 +97,10 @@ export default function TambahMagangModal({ isOpen, onClose }: ModalProps) {
 
     setLoading(true)
     setError('')
-    setSuccess('')
 
-    // Validasi
     if (
       !siswaId ||
-      !guruId ||
+      !selectedGuruId ||
       !dudiId ||
       !tanggalMulai ||
       !tanggalSelesai
@@ -82,13 +110,12 @@ export default function TambahMagangModal({ isOpen, onClose }: ModalProps) {
       return
     }
 
-    // Insert
     const { error: insertError } = await supabase
       .from('magang')
       .insert([
         {
           siswa_id: Number(siswaId),
-          guru_id: Number(guruId),
+          guru_id: Number(selectedGuruId),
           dudi_id: Number(dudiId),
           tanggal_mulai: tanggalMulai,
           tanggal_selesai: tanggalSelesai,
@@ -103,16 +130,15 @@ export default function TambahMagangModal({ isOpen, onClose }: ModalProps) {
       return
     }
 
-    setSuccess('Data berhasil disimpan!')
+    onSuccess()
 
-    // Reset
+    /* RESET */
     setSiswaId('')
-    setGuruId('')
-    setGuruName('')
     setDudiId('')
     setTanggalMulai('')
     setTanggalSelesai('')
     setStatus('pending')
+    setSelectedGuruId('')
 
     onClose()
   }
@@ -152,9 +178,7 @@ export default function TambahMagangModal({ isOpen, onClose }: ModalProps) {
 
           {/* SISWA */}
           <div>
-            <label className="text-xs font-semibold">
-              Siswa
-            </label>
+            <label className="text-xs font-semibold">Siswa</label>
 
             <select
               value={siswaId}
@@ -165,10 +189,16 @@ export default function TambahMagangModal({ isOpen, onClose }: ModalProps) {
 
               {siswaList.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.nama}
+                  {s.nama} {s.nis ? `(${s.nis})` : ''}
                 </option>
               ))}
             </select>
+
+            {siswaList.length === 0 && (
+              <p className="text-xs text-gray-400 mt-1">
+                Tidak ada siswa bimbingan Anda
+              </p>
+            )}
           </div>
 
           {/* GURU */}
@@ -177,36 +207,20 @@ export default function TambahMagangModal({ isOpen, onClose }: ModalProps) {
               Guru Pembimbing
             </label>
 
-            <select
-              value={guruId}
-              onChange={(e) => {
-                const selectedId = e.target.value
+            <input
+              value={guruName || 'Guru Login'}
+              disabled
+              className="w-full mt-1 px-4 py-2 border rounded-xl bg-gray-100"
+            />
 
-                setGuruId(selectedId)
-
-                const selectedGuru = guruList.find(
-                  (g) => g.id == selectedId
-                )
-
-                setGuruName(selectedGuru?.nama || '')
-              }}
-              className="w-full mt-1 px-4 py-2 border rounded-xl"
-            >
-              <option value="">Pilih Guru</option>
-
-              {guruList.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.nama}
-                </option>
-              ))}
-            </select>
+            <p className="text-xs text-blue-600 mt-1">
+              ✓ Terisi otomatis
+            </p>
           </div>
 
           {/* DUDI */}
           <div>
-            <label className="text-xs font-semibold">
-              DUDI
-            </label>
+            <label className="text-xs font-semibold">DUDI</label>
 
             <select
               value={dudiId}
@@ -223,8 +237,8 @@ export default function TambahMagangModal({ isOpen, onClose }: ModalProps) {
             </select>
           </div>
 
-          {/* TANGGAL + STATUS */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* TANGGAL */}
+          <div className="grid md:grid-cols-3 gap-4">
 
             <div>
               <label className="text-xs font-semibold">
@@ -262,25 +276,19 @@ export default function TambahMagangModal({ isOpen, onClose }: ModalProps) {
                 onChange={(e) => setStatus(e.target.value)}
                 className="w-full mt-1 px-4 py-2 border rounded-xl"
               >
-                <option value="pending">Pending</option>
-                <option value="berlangsung">Aktif</option>
-                <option value="selesai">Selesai</option>
+                {statusOptions.map((s) => (
+                  <option key={s} value={s}>
+                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                  </option>
+                ))}
               </select>
             </div>
 
           </div>
 
-          {/* ERROR / SUCCESS */}
+          {/* ERROR */}
           {error && (
-            <p className="text-red-500 text-sm">
-              {error}
-            </p>
-          )}
-
-          {success && (
-            <p className="text-green-500 text-sm">
-              {success}
-            </p>
+            <p className="text-red-500 text-sm">{error}</p>
           )}
 
           {/* BUTTON */}
