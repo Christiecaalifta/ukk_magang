@@ -8,11 +8,18 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
-export default function AddUserModal({ onClose }: { onClose: () => void }) {
+// Tambahkan onSuccess ke dalam interface props
+interface AddUserModalProps {
+  onClose: () => void;
+  onSuccess: (message: string) => void; 
+}
+
+export default function AddUserModal({ onClose, onSuccess }: AddUserModalProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [showPass, setShowPass] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [guruOptions, setGuruOptions] = useState<{user_id: string, nama: string}[]>([])
 
   const [form, setForm] = useState({
     name: '',
@@ -23,11 +30,25 @@ export default function AddUserModal({ onClose }: { onClose: () => void }) {
     verified: 'false',
     kelas: '',
     jurusan: '',
-    nisn: '',
+    nis: '',
     nip: '',
     alamat: '',
     telepon: '',
+    pembimbing: '',
   })
+
+  useEffect(() => {
+    async function fetchGuru() {
+      try {
+        const res = await fetch('/api/users?role=guru')
+        const data = await res.json()
+        setGuruOptions(data)
+      } catch (err) {
+        console.error('Gagal fetch guru', err)
+      }
+    }
+    fetchGuru()
+  }, [])
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -39,10 +60,7 @@ export default function AddUserModal({ onClose }: { onClose: () => void }) {
   }
 
   async function handleSubmit() {
-    if (isInvalid) {
-      alert('Lengkapi data dengan benar')
-      return
-    }
+    if (isInvalid) return
 
     setLoading(true)
     try {
@@ -55,13 +73,13 @@ export default function AddUserModal({ onClose }: { onClose: () => void }) {
         }),
       })
 
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.message)
-      }
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || 'Gagal menambahkan user')
 
+      // Panggil onSuccess dengan pesan sebelum menutup modal
+      onSuccess("User baru berhasil didaftarkan!")
       onClose()
-      router.refresh()
+      
     } catch (err: any) {
       alert(err.message)
     } finally {
@@ -74,18 +92,16 @@ export default function AddUserModal({ onClose }: { onClose: () => void }) {
     !form.email ||
     !form.password ||
     form.password !== form.confirmPassword ||
-    (form.role === 'siswa' && (!form.kelas || !form.jurusan || !form.nisn)) ||
+    (form.role === 'siswa' && (!form.kelas || !form.jurusan || !form.nis || !form.pembimbing)) ||
     (form.role === 'guru' && (!form.nip || !form.alamat || !form.telepon))
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div
         className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300"
         onClick={onClose}
       />
 
-      {/* Modal Container */}
       <div className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
         
         {/* Header */}
@@ -110,7 +126,6 @@ export default function AddUserModal({ onClose }: { onClose: () => void }) {
         {/* Form Body */}
         <div className="p-8 space-y-6 max-h-[65vh] overflow-y-auto custom-scrollbar">
           
-          {/* Bagian 1: Identitas Utama */}
           <div className="space-y-4">
             <Field label="Nama Lengkap" icon={<User size={14} />} required>
               <input name="name" onChange={handleChange} placeholder="Masukkan nama lengkap" className="input-v2" />
@@ -138,7 +153,6 @@ export default function AddUserModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
-          {/* Bagian 2: Data Spesifik Role */}
           {(form.role === 'siswa' || form.role === 'guru') && (
             <div className="pt-4 border-t border-slate-50 space-y-4">
               <div className="flex items-center gap-2 mb-2">
@@ -156,9 +170,20 @@ export default function AddUserModal({ onClose }: { onClose: () => void }) {
                       <input name="jurusan" onChange={handleChange} placeholder="Contoh: RPL" className="input-v2" />
                     </Field>
                   </div>
-                  <Field label="NISN" icon={<Fingerprint size={14} />} required>
-                    <input name="nisn" onChange={handleChange} placeholder="Nomor Induk Siswa Nasional" className="input-v2" />
-                  </Field>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field label="NIS" icon={<Fingerprint size={14} />} required>
+                      <input name="nis" onChange={handleChange} placeholder="Nomor Induk Siswa" className="input-v2" />
+                    </Field>
+                    <Field label="Guru Pembimbing" icon={<User size={14} />} required>
+                      <select name="pembimbing" value={form.pembimbing} onChange={handleChange} className="input-v2">
+                        <option value="">-- Pilih Guru --</option>
+                        {guruOptions.map((g) => (
+                          <option key={g.user_id} value={g.user_id}>{g.nama}</option>
+                        ))}
+                      </select>
+                    </Field>
+                  </div>
                 </div>
               )}
 
@@ -180,7 +205,6 @@ export default function AddUserModal({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          {/* Bagian 3: Keamanan */}
           <div className="pt-4 border-t border-slate-50 space-y-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="h-4 w-1 bg-blue-600 rounded-full" />
@@ -230,12 +254,14 @@ export default function AddUserModal({ onClose }: { onClose: () => void }) {
         {/* Footer Actions */}
         <div className="p-8 bg-slate-50/80 backdrop-blur-sm border-t border-slate-100 flex gap-4">
           <button
+            type="button"
             onClick={onClose}
             className="flex-1 px-6 py-3.5 rounded-2xl border border-slate-200 text-sm font-bold text-slate-500 bg-white hover:bg-slate-50 transition-all active:scale-95"
           >
             Batal
           </button>
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={isInvalid || loading}
             className={`flex-[2] px-6 py-3.5 rounded-2xl text-sm font-black shadow-lg transition-all active:scale-[0.98]
@@ -278,17 +304,7 @@ export default function AddUserModal({ onClose }: { onClose: () => void }) {
   )
 }
 
-function Field({
-  label,
-  icon,
-  required,
-  children,
-}: {
-  label: string
-  icon?: React.ReactNode
-  required?: boolean
-  children: React.ReactNode
-}) {
+function Field({ label, icon, required, children }: { label: string, icon?: React.ReactNode, required?: boolean, children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
       <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 ml-2">
