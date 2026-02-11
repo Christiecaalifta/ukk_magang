@@ -56,12 +56,14 @@ if (user.role === 'siswa') {
   }
 
   // 5. Buat token
-  const token = signJwt({
-    id: user.role === 'siswa' ? siswaId : (user.role === 'guru' ? guruId : user.id),
-    name: user.name,
-    email: user.email,
-    role: user.role,
-  })
+  // 5. Buat token (Simpan userId asli dan guruId secara terpisah)
+const token = signJwt({
+  userId: user.id,      // Gunakan nama 'userId' untuk ID dari tabel users
+  id: user.role === 'guru' ? guruId : user.id, // Biarkan 'id' berisi guruId untuk role guru agar Jurnal tetap terbaca
+  name: user.name,
+  email: user.email,
+  role: user.role,
+})
 
   // 6. Response
   const res = NextResponse.json({

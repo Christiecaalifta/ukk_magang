@@ -58,7 +58,7 @@ export default async function LogbookPage({ searchParams }: any) {
     .from('magang')
     .select('id')
     .eq('siswa_id', siswa.id)
-    .in('status', ['berlangsung', 'pending'])
+    .in('status', ['berlangsung', 'pending', 'diterima', 'selesai'])
     .order('created_at', { ascending: false })
     .limit(1)
     .single()

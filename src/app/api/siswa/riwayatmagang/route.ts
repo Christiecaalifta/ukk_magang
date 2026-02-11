@@ -1,13 +1,17 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import type { NextApiRequest, NextApiResponse } from 'next'
+import { NextResponse } from 'next/server'
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { userId } = req.query
-
-  if (!userId) return res.status(400).json({ error: 'userId dibutuhkan' })
-
+// WAJIB menggunakan named export GET, bukan export default
+export async function GET(req: Request) {
   try {
-    // Ambil siswa_id dari tabel siswa
+    const { searchParams } = new URL(req.url)
+    const userId = searchParams.get('userId')
+
+    if (!userId) {
+      return NextResponse.json({ error: 'userId dibutuhkan' }, { status: 400 })
+    }
+
+    // 1. Ambil ID Siswa dari tabel 'siswa' berdasarkan 'user_id'
     const { data: siswaData, error: siswaError } = await supabaseAdmin
       .from('siswa')
       .select('id')
@@ -15,21 +19,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .single()
 
     if (siswaError || !siswaData) {
-      return res.status(404).json({ error: 'Siswa tidak ditemukan' })
+      console.log("Siswa tidak ditemukan untuk userId:", userId)
+      return NextResponse.json([], { status: 200 }) // Kembalikan array kosong jika siswa belum ada
     }
 
-    // Ambil riwayat magang siswa
+    // 2. Ambil data magang dengan join ke tabel dudi
+    // Karena 'tanggal_daftar' tidak ada, kita gunakan 'created_at'
     const { data: magangData, error: magangError } = await supabaseAdmin
       .from('magang')
-      .select('id, tanggal_daftar, dudi_id, dudi(nama)')
+      .select(`
+        id, 
+        created_at, 
+        dudi (
+          nama_perusahaan
+        )
+      `)
       .eq('siswa_id', siswaData.id)
-      .order('tanggal_daftar', { ascending: false })
+      .order('created_at', { ascending: false })
 
-    if (magangError) throw magangError
+    if (magangError) {
+      console.error("Kesalahan Query Magang:", magangError)
+      return NextResponse.json({ error: magangError.message }, { status: 500 })
+    }
 
-    res.status(200).json(magangData)
-  } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: 'Terjadi kesalahan server' })
+    // 3. Mapping data agar sesuai dengan interface RiwayatMagang di Frontend
+    const formattedData = (magangData || []).map((item: any) => ({
+      id: item.id,
+      // Jika dudi.nama_perusahaan null, tampilkan fallback
+      namaDudi: item.dudi?.nama_perusahaan || 'Perusahaan tidak diketahui',
+      tanggalDaftar: item.created_at
+    }))
+
+    return NextResponse.json(formattedData)
+  } catch (err: any) {
+    console.error("Internal Server Error:", err)
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 })
   }
 }

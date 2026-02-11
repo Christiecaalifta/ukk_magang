@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation' // Tambah import ini
 import {
   Eye,
   Pencil,
@@ -15,7 +16,7 @@ import {
   Filter,
   X
 } from 'lucide-react'
-import TambahJurnalForm from '@/components/siswa/addjurnal' // import komponen form
+import TambahJurnalForm from '@/components/siswa/addjurnal'
 import DetailJurnalModal from '@/components/siswa/detailjurnal' 
 import EditJurnalForm from '@/components/siswa/editjurnal'
 
@@ -66,10 +67,18 @@ export default function LogbookClient({
   search = "",
   magangId
 }: any) {
+  const router = useRouter() // Inisialisasi router
   const [showForm, setShowForm] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [selectedJurnal, setSelectedJurnal] = useState<any | null>(null)
   const [editingJurnalId, setEditingJurnalId] = useState<number | null>(null)
+
+  // Logika cek apakah sudah mengisi hari ini (Format YYYY-MM-DD)
+  const today = new Date().toLocaleDateString('en-CA'); 
+  const hasFilledToday = data.some((item: any) => {
+    const itemDate = new Date(item.tanggal).toLocaleDateString('en-CA');
+    return itemDate === today;
+  });
 
   const handleToast = (message: string) => setToastMessage(message)
 
@@ -105,30 +114,47 @@ export default function LogbookClient({
              onAdd={() => {
                setShowForm(false)
                handleToast("Jurnal berhasil ditambah!")
+               router.refresh() // Refresh data agar alert berubah
              }}
            />
         </div>
       )}
 
-      {/* ALERT */}
-      <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-8 flex justify-between items-center">
-        <div className="flex gap-4">
-          <div className="bg-amber-100 p-2 rounded-lg h-fit">
-            <FileText className="text-amber-600" size={20} />
+      {/* ALERT - OTOMATIS BERUBAH */}
+      {hasFilledToday ? (
+        <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 mb-8 flex justify-between items-center transition-all animate-in fade-in duration-500">
+          <div className="flex gap-4">
+            <div className="bg-emerald-100 p-2 rounded-lg h-fit">
+              <CheckCircle2 className="text-emerald-600" size={20} />
+            </div>
+            <div>
+              <h4 className="font-bold text-emerald-900">Luar Biasa!</h4>
+              <p className="text-sm text-emerald-700">Anda sudah mengisi jurnal untuk hari ini. Tetap semangat magangnya!</p>
+            </div>
           </div>
-          <div>
-            <h4 className="font-bold text-amber-900">Jangan Lupa Jurnal Hari Ini!</h4>
-            <p className="text-sm text-amber-700">Anda belum membuat jurnal untuk hari ini. Dokumentasikan kegiatan magang Anda sekarang.</p>
+          <div className="hidden md:block px-4 py-2 bg-emerald-100/50 rounded-xl">
+             <span className="text-emerald-700 text-xs font-bold uppercase tracking-wider">Sudah Terisi</span>
           </div>
         </div>
-        <button
-          onClick={() => setShowForm(true)} // buka form saat diklik
-          className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-xl text-sm font-semibold transition-colors"
-        >
-          Buat Sekarang
-        </button>
-
-      </div>
+      ) : (
+        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-8 flex justify-between items-center">
+          <div className="flex gap-4">
+            <div className="bg-amber-100 p-2 rounded-lg h-fit">
+              <FileText className="text-amber-600" size={20} />
+            </div>
+            <div>
+              <h4 className="font-bold text-amber-900">Jangan Lupa Jurnal Hari Ini!</h4>
+              <p className="text-sm text-amber-700">Anda belum membuat jurnal untuk hari ini. Dokumentasikan kegiatan magang Anda sekarang.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-xl text-sm font-semibold transition-colors"
+          >
+            Buat Sekarang
+          </button>
+        </div>
+      )}
 
       {/* STATS */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
@@ -217,20 +243,19 @@ export default function LogbookClient({
                       <div className="flex justify-center items-center gap-2">
                         <button onClick={() => setSelectedJurnal(item)}
                         className="p-2 text-slate-400 hover:text-cyan-600 hover:bg-cyan-50 rounded-lg transition-all">
-                          
                           <Eye size={18} />
                         </button>
                         <button
-  onClick={() => setEditingJurnalId(item.id)} // Set ID jurnal yang akan diedit
-  className={`p-2 rounded-lg transition-all ${
-    item.status_verifikasi === 'pending' || item.status_verifikasi === 'ditolak'
-      ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
-      : 'text-slate-300 cursor-not-allowed'
-  }`}
-  disabled={item.status_verifikasi === 'disetujui'} // Kunci jika sudah disetujui
->
-  <Pencil size={18} />
-</button>
+                          onClick={() => setEditingJurnalId(item.id)}
+                          className={`p-2 rounded-lg transition-all ${
+                            item.status_verifikasi === 'pending' || item.status_verifikasi === 'ditolak'
+                              ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
+                              : 'text-slate-300 cursor-not-allowed'
+                          }`}
+                          disabled={item.status_verifikasi === 'disetujui'}
+                        >
+                          <Pencil size={18} />
+                        </button>
                         <button
                           className={`p-2 rounded-lg transition-all ${
                             item.status_verifikasi === 'pending'
@@ -261,35 +286,31 @@ export default function LogbookClient({
         </div>
       </div>
 
-      {/* ... bagian akhir kode LogbookClient ... */}
-      
-      {/* MODAL DETAIL */}
-{selectedJurnal && (
-  <DetailJurnalModal 
-    data={selectedJurnal} 
-    onClose={() => setSelectedJurnal(null)} 
-  />
-)}
+      {/* MODALS */}
+      {selectedJurnal && (
+        <DetailJurnalModal 
+          data={selectedJurnal} 
+          onClose={() => setSelectedJurnal(null)} 
+        />
+      )}
 
-{/* MODAL EDIT */}
-{editingJurnalId && (
-  <EditJurnalForm 
-    jurnalId={editingJurnalId}
-    onClose={() => setEditingJurnalId(null)}
-    onUpdate={() => {
-      setEditingJurnalId(null)
-      handleToast("Jurnal berhasil diperbarui!")
-      // Jika Anda menggunakan router.refresh() untuk refresh data:
-      // router.refresh() 
-    }}
-  />
-)}
+      {editingJurnalId && (
+        <EditJurnalForm 
+          jurnalId={editingJurnalId}
+          onClose={() => setEditingJurnalId(null)}
+          onUpdate={() => {
+            setEditingJurnalId(null)
+            handleToast("Jurnal berhasil diperbarui!")
+            router.refresh()
+          }}
+        />
+      )}
 
       {/* TOAST */}
       {toastMessage && (
         <Toast message={toastMessage} onClose={() => setToastMessage(null)} duration={3000} />
       )}
-    </div> // Penutup div utama
+    </div>
   )
 }
 

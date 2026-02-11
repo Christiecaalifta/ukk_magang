@@ -40,7 +40,7 @@ export default async function StatusMagangPage() {
       dudi ( nama_perusahaan, alamat )
     `)
     .eq('siswa_id', siswa.id)
-    .eq('status', 'berlangsung')
+    .in('status', ['berlangsung', 'diterima', 'selesai'])
     .order('tanggal_mulai', { ascending: false })
     .limit(1)
     .maybeSingle()
